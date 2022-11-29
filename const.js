@@ -41,8 +41,8 @@ module.exports.country_list = [
 
 var dict_template = {
     "app_id": 0,
-    "app_name": 0,
-    "app_page_url": 0,
+    "app_name": "",
+    "app_page_url": "",
     "source": "stratified",
     "source_app": "stratified",
     "rank_at_souce": 0,
@@ -53,14 +53,14 @@ var dict_template = {
 
 var retry_template = {
     "cat_num": 0,
-    "app_id": 0,
+    "app_id": "",
     "request_date": "2022-11-12",
-    "app_page_url": 0,
+    "app_page_url": "",
 }
 
 var review_template = {
     "app_id": 0,
-    "app_name": 0,
+    "app_name": "",
     "country": "US",
     "language": "us",
     "post_date": "2013-11-10T18:31:42.174Z",

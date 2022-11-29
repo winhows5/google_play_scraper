@@ -1,7 +1,6 @@
 const gplay = require('google-play-scraper');
 const fs = require('fs');
 const {category_list, dict_keys} = require('./const');
-const { get } = require('http');
 
 function get_date() {
     var today = new Date();
@@ -56,13 +55,9 @@ async function scrape_rank (partition_dict) {
     }, console.log);
 }
 
-var download_record;
 async function main() {
-    var data = fs.readFileSync('.download_record.json');
-    download_record = JSON.parse(data);
 
     for (let i = 0; i < 32; i++) {
-        
         partition_dict = {
             "num": i,
             "category": category_list[i],
