@@ -39,15 +39,15 @@ module.exports.country_list = [
     "HK",
 ]
 
-var dict_template = {
-    "app_id": 0,
+var rank_template = {
+    "app_id": "",
     "app_name": "",
     "app_page_url": "",
-    "source": "stratified",
-    "source_app": "stratified",
+    "source": "stratified/snowball",
+    "source_app": "stratified / [list of apps]",
     "rank_at_souce": 0,
     "rank_method": "Top Free",
-    "category": 0,
+    "category": "",
     "request_date": "2022-11-12"
 }
 
@@ -59,24 +59,24 @@ var retry_template = {
 }
 
 var review_template = {
-    "app_id": 0,
+    "app_id": "",
     "app_name": "",
     "country": "US",
     "language": "us",
     "post_date": "2013-11-10T18:31:42.174Z",
-    "review_id": 0,
+    "review_id": "",
     "user_name": "",
     "user_image": "",
     "score": 0,
     "review_title": "",
-    "review_text": "",
+    "review_text": "A JSON object",
     "is_replied": 0,
     "reply_date": "2013-11-10T18:31:42.174Z",
-    "reply_text": "",
+    "reply_text": "A JSON object",
     "app_version": "",
     "thumbsup": 0,
     "url": "",
-    "criterias": "",
+    "criterias": "[]",
 }
 
 var review_stat_template = {
@@ -90,7 +90,7 @@ var review_stat_template = {
     "scrape_date": "2013-11-10T18:31:42.174Z",
 }
 
-module.exports.dict_keys = Object.keys(dict_template);
+module.exports.dict_keys = Object.keys(rank_template);
 module.exports.retry_keys = Object.keys(retry_template);
 module.exports.review_keys = Object.keys(review_template);
 module.exports.review_stat_keys = Object.keys(review_stat_template);

@@ -1,3 +1,8 @@
+/*
+Retry the reviews failed for a app.
+It will continue scrape the following apps of current category.
+*/
+
 const gplay = require('google-play-scraper');
 const fs = require('fs');
 const csv = require('csv-parser');
@@ -9,11 +14,14 @@ var REVIEW_DATE = new Date("2022-09-01T00:00:00.000Z");
 var REVIEW_LIMIT = 3000000;
 var rank_records;
 
+var retry_cat = 30;
+var retry_app = 9;
 /* MUST be used after rank.js
 */
 async function scrape_review(partition_dict, rank_records, dir) {
+
     var page_count = 0;
-    for (let i = 9; i < rank_records.length; i++) { 
+    for (let i = retry_app; i < rank_records.length; i++) { 
         var review_count = 0;
         csv_app_id = partition_dict.category + "_" + partition_dict.country + "_" + partition_dict.lang + "_appid";
         csv_app_name = partition_dict.category + "_" + partition_dict.country + "_" + partition_dict.lang + "_appname";
@@ -25,7 +33,7 @@ async function scrape_review(partition_dict, rank_records, dir) {
         let app_id = rank_records[i][csv_app_id];
         let app_name = rank_records[i][csv_app_name];
         let nextPag = null;
-        if (i === 9) {
+        if (i === retry_app) {
             nextPag = "Co0BCooBCocBMCxUSU1FU1RBTVAgIjIwMjItMTEtMDggMDg6MTM6NDAuODMzMDYwKzAwIiw2ODc1MDEzMDc5NTUsImh0dHA6Ly9tYXJrZXQuYW5kcm9pZC5jb20vZGV0YWlscz9pZD12Mjpjb20uZ29vZ2xlLmFuZHJvaWQueW91dHViZToxIiwxLGZhbHNl";
         }
         let hasAll = false;
@@ -169,7 +177,7 @@ async function read_csv (partition_dict) {
 }
 
 async function main() {
-    for (let i =30; i < 31; i++) {
+    for (let i = retry_cat; i < retry_cat+1; i++) {
         partition_dict = {
             "num": i,
             "category": category_list[i],
