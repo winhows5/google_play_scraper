@@ -1,3 +1,8 @@
+/*
+Get the top 100 rank list from 32 categories.
+*/
+
+
 const gplay = require('google-play-scraper');
 const fs = require('fs');
 const {category_list, dict_keys} = require('./const');

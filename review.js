@@ -1,3 +1,8 @@
+/*
+Get the reviews from a app list. This list is obtained by rank.js.
+*/
+
+
 const gplay = require('google-play-scraper');
 const fs = require('fs');
 const csv = require('csv-parser');
