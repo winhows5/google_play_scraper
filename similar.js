@@ -40,7 +40,7 @@ async function scrape_similar (partition_dict, rank_records) {
                 ));
                 
             const app_similar = app_similar_csv.join('\n') + '\n';
-            fs.appendFile(partition_dict.country+"/"+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", app_similar, console.log);
+            fs.appendFileSync(partition_dict.country+"/"+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", app_similar, console.log);
             console.log("snowball %d of Source: %d %s\n", v2.length, i, app_id);
         })
         .catch((e) => {
@@ -59,7 +59,7 @@ async function scrape_similar (partition_dict, rank_records) {
                 }).join(',')
                 ));
             const retry_string = retry_csv.join('\n') + '\n';
-            fs.appendFile(".retry.csv", retry_string, console.log);
+            fs.appendFileSync(".retry.csv", retry_string, console.log);
             app_count += 1;
             console.log(total, " process: ", app_count);
         })

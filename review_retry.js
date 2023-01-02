@@ -5,15 +5,15 @@ const {category_list, review_keys, review_stat_keys, retry_keys} = require('./co
 
 
 var DELIMITER = String.fromCharCode(0x1F);
-var REVIEW_DATE = new Date("2022-09-01T00:00:00.000Z");   // earliest date
+var REVIEW_DATE = new Date("2022-09-01T00:00:00.000Z");
 var REVIEW_LIMIT = 3000000;
 var rank_records;
 
-/* rand list is obtained according to rank.js
+/* MUST be used after rank.js
 */
 async function scrape_review(partition_dict, rank_records, dir) {
     var page_count = 0;
-    for (let i = 0; i < rank_records.length; i++) { 
+    for (let i = 9; i < rank_records.length; i++) { 
         var review_count = 0;
         csv_app_id = partition_dict.category + "_" + partition_dict.country + "_" + partition_dict.lang + "_appid";
         csv_app_name = partition_dict.category + "_" + partition_dict.country + "_" + partition_dict.lang + "_appname";
@@ -23,8 +23,11 @@ async function scrape_review(partition_dict, rank_records, dir) {
         let date_earliest = new Date();
 
         let app_id = rank_records[i][csv_app_id];
-        let app_name = rank_records[i][csv_app_name];5∞∞∞∞∞∞
+        let app_name = rank_records[i][csv_app_name];
         let nextPag = null;
+        if (i === 9) {
+            nextPag = "Co0BCooBCocBMCxUSU1FU1RBTVAgIjIwMjItMTEtMDggMDg6MTM6NDAuODMzMDYwKzAwIiw2ODc1MDEzMDc5NTUsImh0dHA6Ly9tYXJrZXQuYW5kcm9pZC5jb20vZGV0YWlscz9pZD12Mjpjb20uZ29vZ2xlLmFuZHJvaWQueW91dHViZToxIiwxLGZhbHNl";
+        }
         let hasAll = false;
         while (!hasAll) {
             console.log("current page: ", nextPag);
@@ -166,7 +169,7 @@ async function read_csv (partition_dict) {
 }
 
 async function main() {
-    for (let i = 0; i < 32; i++) {
+    for (let i =30; i < 31; i++) {
         partition_dict = {
             "num": i,
             "category": category_list[i],
@@ -186,13 +189,11 @@ async function main() {
         await promise;
 
         // wirte titles
-        const titles = review_keys.join(DELIMITER) + '\n';
-        fs.writeFileSync(dir+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", titles, console.log);
-        if (!fs.existsSync(dir+"app_review_stat.csv")) {
-            const stat_titles = review_stat_keys.join(DELIMITER) + '\n';
-            fs.writeFileSync(dir+"app_review_stat.csv", stat_titles, console.log);
-        }
-
+        // const titles = review_keys.join(DELIMITER) + '\n';
+        // fs.writeFileSync(dir+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", titles, console.log);
+        // const stat_titles = review_stat_keys.join(DELIMITER) + '\n';
+        // fs.writeFileSync(dir+"app_review_stat.csv", stat_titles, console.log);
+        
         // keep only frst 20 apps
         rank_records = rank_records.slice(0, 20);
         console.log("Category: ", i, rank_records.length);

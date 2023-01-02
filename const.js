@@ -66,6 +66,7 @@ var review_template = {
     "post_date": "2013-11-10T18:31:42.174Z",
     "review_id": 0,
     "user_name": "",
+    "user_image": "",
     "score": 0,
     "review_title": "",
     "review_text": "",
@@ -75,8 +76,21 @@ var review_template = {
     "app_version": "",
     "thumbsup": 0,
     "url": "",
+    "criterias": "",
+}
+
+var review_stat_template = {
+    "app_id": "",
+    "app_name": "",
+    "category": "",
+    "category_rank": 1.0,
+    "review_amounts": 0,
+    "last_review_date": "2013-11-10T18:31:42.174Z",
+    "first_review_date": "2013-11-10T18:31:42.174Z",
+    "scrape_date": "2013-11-10T18:31:42.174Z",
 }
 
 module.exports.dict_keys = Object.keys(dict_template);
 module.exports.retry_keys = Object.keys(retry_template);
 module.exports.review_keys = Object.keys(review_template);
+module.exports.review_stat_keys = Object.keys(review_stat_template);

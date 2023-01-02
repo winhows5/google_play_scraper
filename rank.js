@@ -39,8 +39,6 @@ async function scrape_rank (partition_dict) {
             }
             result.push(dict);          
         }
-        download_record[partition_dict.num] = new Set();
-        fs.writeFileSync(".download_record.json", JSON.stringify(download_record));
         const result_csv = result.map(item => (
             dict_keys.map(key => {
                 return item[key];

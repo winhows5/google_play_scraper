@@ -46,7 +46,7 @@ async function read_csv (partition_dict) {
                 ));
                 
             const app_similar = app_similar_csv.join('\n') + '\n';
-            fs.appendFile(partition_dict.country+"/"+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", app_similar, console.log);
+            fs.appendFileSync(partition_dict.country+"/"+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", app_similar, console.log);
         });
 }
 

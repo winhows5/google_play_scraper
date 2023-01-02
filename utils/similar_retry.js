@@ -1,7 +1,7 @@
 var gplay = require('google-play-scraper');
 var fs = require('fs');
 const csv = require('csv-parser');
-const {category_list, dict_keys, retry_keys} = require('./const');
+const {category_list, dict_keys, retry_keys} = require('../const');
 
 
 
@@ -41,7 +41,7 @@ async function scrape_similar_retry (retry_dict, records) {
                 ));
                 
             const app_similar = app_similar_csv.join('\n') + '\n';
-            fs.appendFile(retry_dict.country+"/"+category+"_"+retry_dict.country+"_"+retry_dict.lang+".csv", app_similar, console.log);
+            fs.appendFileSync(retry_dict.country+"/"+category+"_"+retry_dict.country+"_"+retry_dict.lang+".csv", app_similar, console.log);
             console.log("snowball %d of Category: %d Source: %s\n", v2.length, records[i].cat_num, app_id);
         })
         .catch(() => {
@@ -54,7 +54,7 @@ async function scrape_similar_retry (retry_dict, records) {
                 }).join(',')
                 ));
             const retry_string = retry_csv.join('\n') + '\n';
-            fs.appendFile(retry_dict.country+"/.retry_2.csv", retry_string, console.log);
+            fs.appendFileSync(retry_dict.country+"/.retry_2.csv", retry_string, console.log);
             app_count += 1;
             console.log(total, " process: ", app_count);
         })
