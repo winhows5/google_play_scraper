@@ -68,12 +68,26 @@ var review_stat_template = {
 
 ### Stipulation
 
-The field "review_text" and "reply_text" is generated as a JSON object:
-```
-{
-    "text": "Any string",
-}
-```
+1. JSON field
 
-As the text fields could contain a bunch of illegal characters.
+  The text fields such as "review_text", "reply_text", and "description" are generated as a JSON object:
+  ```
+  {
+      "text": "Any string",
+  }
+  ```
+
+  As the text fields could contain a bunch of illegal characters.
+  
+### Incoherence
+
+Some apps are inaccessible due to reasons, which may cause incoherence between different lists. Take care when dealing with such apps:
+
+| App Name                                   | App ID                                       | Date of awareness |
+| -----------                                | -----------                                  | -----------       |
+| Anime tv - Anime Tv Online HD              | com.animetv.animetvonline.us2002             | 2023-01-02        |
+| Anime tv - Anime Watching App              | com.animetv.sub.dub                          | 2023-01-02        |
+| Live yassine tv apk ياسين تيفي             | apk.yacinetv.yacinetvapk                     | 2023-01-02        |
+
+
 
