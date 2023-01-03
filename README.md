@@ -95,19 +95,18 @@ var info_template = {
 
 1. text field
 
-  The text fields such as "review_text", "reply_text", and "description" are generated as a JSON object:
-  ```
-  {
-      "text": "Any string",
-  }
-  ```
-
-  As the text fields could contain a bunch of illegal characters.
+The text fields such as "review_text", "reply_text", and "description" are generated as a JSON object:
+```
+{
+  "text": "Any string",
+}
+```
+As the text fields could contain a bunch of illegal characters.
   
 2. delimiter / separator
 
-   All CSV files under App_rank use comma as the delimiter.
-   All other CSV files use ASCII 0x1F (Unit Separator) as the delimiter.
+All CSV files under App_rank use comma as the delimiter.
+All other CSV files use ASCII 0x1F (Unit Separator) as the delimiter.
    
   
 ### Incoherence
