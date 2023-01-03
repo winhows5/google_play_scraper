@@ -104,6 +104,12 @@ var info_template = {
 
   As the text fields could contain a bunch of illegal characters.
   
+2. delimiter / separator
+
+   All CSV files under App_rank use comma as the delimiter.
+   All other CSV files use ASCII 0x1F (Unit Separator) as the delimiter.
+   
+  
 ### Incoherence
 
 Some apps are inaccessible due to reasons, which may cause incoherence between different lists. Take care when dealing with such apps:
