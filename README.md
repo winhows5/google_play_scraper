@@ -93,7 +93,7 @@ var info_template = {
 
 ### Stipulation
 
-1. JSON field
+1. test field
 
   The text fields such as "review_text", "reply_text", and "description" are generated as a JSON object:
   ```
