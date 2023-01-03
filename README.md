@@ -83,11 +83,12 @@ var review_stat_template = {
 
 Some apps are inaccessible due to reasons, which may cause incoherence between different lists. Take care when dealing with such apps:
 
-| App Name                                   | App ID                                       | Date of awareness |
-| -----------                                | -----------                                  | -----------       |
-| Anime tv - Anime Tv Online HD              | com.animetv.animetvonline.us2002             | 2023-01-02        |
-| Anime tv - Anime Watching App              | com.animetv.sub.dub                          | 2023-01-02        |
-| Live yassine tv apk ياسين تيفي             | apk.yacinetv.yacinetvapk                     | 2023-01-02        |
+| App Name                                   | App ID                                            | Date of awareness |
+| -----------                                | -----------                                       | -----------       |
+| Anime tv - Anime Tv Online HD              | com.animetv.animetvonline.us2002                  | 2023-01-02        |
+| Anime tv - Anime Watching App              | com.animetv.sub.dub                               | 2023-01-02        |
+| Live yassine tv apk ياسين تيفي             | apk.yacinetv.yacinetvapk                          | 2023-01-02        |
+| Blood Pressure Tracker                     | com.bloodpressurechecker.bpmonitor.bptracker      | 2023-01-02        |
 
 
 
