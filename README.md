@@ -6,29 +6,30 @@ Personal scraper used to collect data for research.
 
 - **rank.js** is meant to get top100 apps from 32 categories.
 - **similar.js** is meant to get similar apps from the rank_app list.
-- **review.js** is meant to get 3-month reviews from the rank_app list (but only top20). 
+- **review.js** is meant to get 3-month (starts from 2022-09-01) reviews from the rank_app list (but only top20). 
+- **info.js** is meant to get app information details from the rank_app list (but only top20). 
 
 ### Data Format
 
 1. Rank
 
-  ```
-  var rank_template = {
-      "app_id": "",
-      "app_name": "",
-      "app_page_url": "",
-      "source": "stratified/snowball",
-      "source_app": "stratified / [list of apps]",
-      "rank_at_souce": 0,
-      "rank_method": "Top Free",
-      "category": "",
-      "request_date": "2022-11-12"
-  }
+``` JS
+var rank_template = {
+    "app_id": "",
+    "app_name": "",
+    "app_page_url": "",
+    "source": "stratified/snowball",
+    "source_app": "stratified / [list of apps]",
+    "rank_at_souce": 0,
+    "rank_method": "Top Free",
+    "category": "",
+    "request_date": "2022-11-12"
+}
   ```
 
 2. Review
 
-```
+``` JS
 var review_template = {
     "app_id": "",
     "app_name": "",
@@ -53,7 +54,7 @@ var review_template = {
 
 3. Review Stat
 
-```
+``` JS
 var review_stat_template = {
     "app_id": "",
     "app_name": "",
@@ -63,6 +64,30 @@ var review_stat_template = {
     "last_review_date": "2013-11-10T18:31:42.174Z",
     "first_review_date": "2013-11-10T18:31:42.174Z",
     "scrape_date": "2013-11-10T18:31:42.174Z",
+}
+```
+
+4. App Info
+
+``` JS
+var info_template = {
+    "app_id": "",
+    "app_name": "",
+    "country": "US",
+    "language": "us",
+    "app_description": "A JSON object",
+    "release_date": "May 30, 2013",
+    "is_free": 1,
+    "price": 0,
+    "currency": "USD",
+    "app_score": 0,
+    "download": "",
+    "total_ratings": 0,
+    "total_reviews": 0,
+    "rating_hist": " {\"1\":0, \"2\":0, \"3\":0, \"4\":0, \"5\":0}",
+    "app_category": "",
+    "app_category_id": "",
+    "scrape_date": "2013-11-10",
 }
 ```
 
