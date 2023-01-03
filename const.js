@@ -85,12 +85,33 @@ var review_stat_template = {
     "category": "",
     "category_rank": 1.0,
     "review_amounts": 0,
-    "last_review_date": "2013-11-10T18:31:42.174Z",
-    "first_review_date": "2013-11-10T18:31:42.174Z",
-    "scrape_date": "2013-11-10T18:31:42.174Z",
+    "last_review_date": "Wed Dec 28 2022 20:04:46 GMT-0500 (Eastern Standard Time)",
+    "first_review_date": "Wed Dec 28 2022 20:04:46 GMT-0500 (Eastern Standard Time)",
+    "scrape_date": "2013-11-10",
+}
+
+var info_template = {
+    "app_id": "",
+    "app_name": "",
+    "country": "US",
+    "language": "us",
+    "app_description": "A JSON object",
+    "release_date": "May 30, 2013",
+    "is_free": 1,
+    "price": 0,
+    "currency": "USD",
+    "app_score": 0,
+    "download": "",
+    "total_ratings": 0,
+    "total_reviews": 0,
+    "rating_hist": " {\"1\":0, \"2\":0, \"3\":0, \"4\":0, \"5\":0}",
+    "app_category": "",
+    "app_category_id": "",
+    "scrape_date": "2013-11-10",
 }
 
 module.exports.dict_keys = Object.keys(rank_template);
 module.exports.retry_keys = Object.keys(retry_template);
 module.exports.review_keys = Object.keys(review_template);
 module.exports.review_stat_keys = Object.keys(review_stat_template);
+module.exports.info_keys = Object.keys(info_template);

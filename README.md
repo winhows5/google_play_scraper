@@ -34,17 +34,17 @@ var review_template = {
     "app_id": "",
     "app_name": "",
     "country": "US",
-    "language": "us",
+    "language": "en",
     "post_date": "2013-11-10T18:31:42.174Z",
     "review_id": "",
     "user_name": "",
     "user_image": "",
     "score": 0,
     "review_title": "",
-    "review_text": "A JSON object",
+    "review_text": "{\"text\":\"\"}",
     "is_replied": 0,
     "reply_date": "2013-11-10T18:31:42.174Z",
-    "reply_text": "A JSON object",
+    "reply_text": "{\"text\":\"\"}",
     "app_version": "",
     "thumbsup": 0,
     "url": "",
@@ -74,8 +74,8 @@ var info_template = {
     "app_id": "",
     "app_name": "",
     "country": "US",
-    "language": "us",
-    "app_description": "A JSON object",
+    "language": "en",
+    "app_description": "{\"text\":\"\"}",
     "release_date": "May 30, 2013",
     "is_free": 1,
     "price": 0,
@@ -93,7 +93,7 @@ var info_template = {
 
 ### Stipulation
 
-1. test field
+1. text field
 
   The text fields such as "review_text", "reply_text", and "description" are generated as a JSON object:
   ```
@@ -114,6 +114,7 @@ Some apps are inaccessible due to reasons, which may cause incoherence between d
 | Anime tv - Anime Watching App              | com.animetv.sub.dub                               | 2023-01-02        |
 | Live yassine tv apk ياسين تيفي             | apk.yacinetv.yacinetvapk                          | 2023-01-02        |
 | Blood Pressure Tracker                     | com.bloodpressurechecker.bpmonitor.bptracker      | 2023-01-02        |
+| IPTV Smarters Pro                          | com.nst.iptvsmarterstvbox                         | 2023-01-02        |
 
 
 

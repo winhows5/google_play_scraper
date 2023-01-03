@@ -16,7 +16,8 @@ var rank_records;
 
 var retry_cat = 30;
 var retry_app = 9;
-/* MUST be used after rank.js
+
+/* rank list is obtained according to rank.js
 */
 async function scrape_review(partition_dict, rank_records, dir) {
 

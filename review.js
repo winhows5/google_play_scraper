@@ -14,7 +14,7 @@ var REVIEW_DATE = new Date("2022-09-01T00:00:00.000Z");   // earliest date
 var REVIEW_LIMIT = 3000000;
 var rank_records;
 
-/* rand list is obtained according to rank.js
+/* rank list is obtained according to rank.js
 */
 async function scrape_review(partition_dict, rank_records, dir) {
     var page_count = 0;
@@ -28,7 +28,7 @@ async function scrape_review(partition_dict, rank_records, dir) {
         let date_earliest = new Date();
 
         let app_id = rank_records[i][csv_app_id];
-        let app_name = rank_records[i][csv_app_name];5∞∞∞∞∞∞
+        let app_name = rank_records[i][csv_app_name];
         let nextPag = null;
         let hasAll = false;
         while (!hasAll) {
