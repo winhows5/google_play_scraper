@@ -41,9 +41,12 @@ async function scrape_review(partition_dict, rank_records, dir) {
                 nextPaginationToken: nextPag,
                 throttle: 1})
             .then( v => {
-                nextPag = v.nextPaginationToken;
                 v2 = v.data;
+                if (v2.length === 0) {
+                    throw new Error("Length Exception");
+                }
                 var result = [];
+                nextPag = v.nextPaginationToken;
                 for (let j = 0; j < v2.length; j++) {
 
                     if (REVIEW_DATE > new Date(v2[j].date)) {   // run till this date
@@ -180,7 +183,7 @@ async function read_csv (partition_dict) {
 }
 
 async function main() {
-    for (let i = 0; i < 32; i++) {
+    for (let i = 6; i < 7; i++) {
         let partition_dict = {
             "num": i,
             "category": category_list[i],

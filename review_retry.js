@@ -10,7 +10,7 @@ const {category_list, review_keys, review_stat_keys, retry_keys} = require('./co
 
 
 var DELIMITER = String.fromCharCode(0x1F);
-var REVIEW_DATE = new Date("2022-09-01T00:00:00.000Z");
+var REVIEW_DATE = new Date("2021-12-01T00:00:00.000Z");
 var REVIEW_LIMIT = 3000000;
 var rank_records;
 
@@ -51,8 +51,11 @@ async function scrape_review_retry(partition_dict, rank_records, dir, retry_app,
                 nextPaginationToken: nextPag,
                 throttle: 1})
             .then( v => {
-                nextPag = v.nextPaginationToken;
                 v2 = v.data;
+                if (v2.length === 0) {
+                    throw new Error("Length Exception");
+                }
+                nextPag = v.nextPaginationToken;
                 var result = [];
                 for (let j = 0; j < v2.length; j++) {
 
@@ -132,6 +135,8 @@ async function scrape_review_retry(partition_dict, rank_records, dir, retry_app,
                     "request_date": (new Date()).toISOString().slice(0, 10),
                     "count": review_count,
                     "info": nextPag,
+                    "last_date": date_latest,
+                    "first_date": date_earliest,
                     "app_page_url": "",
                 });
                 const retry_csv = retry_list.map(item => (
@@ -199,7 +204,7 @@ async function main() {
     })
     .on('end', () => {
         console.log("read retry data: ", retry_list);
-        fs.unlinkSync("App_review/" + retry_country + "_review/" + ".retry.csv");
+        //fs.unlinkSync("App_review/" + retry_country + "_review/" + ".retry.csv");
     });
     
     let retry_csv_read = new Promise((resolve, reject) => {
@@ -209,9 +214,9 @@ async function main() {
 
     for (let k=0; k<retry_list.length; k++) {
         let retry_entry = retry_list[k];
-        let retry_cat = retry_entry.cat_num;
-        let retry_app = retry_entry.app_num;
-        let retry_count = retry_entry.count;
+        let retry_cat = parseInt(retry_entry.cat_num);
+        let retry_app = parseInt(retry_entry.app_num);
+        let retry_count = parseInt(retry_entry.count);
         let retry_page = retry_entry.info;
         let retry_last_date = retry_entry.last_date;
         let retry_first_date = retry_entry.first_date;

@@ -6,5 +6,7 @@ IN*
 US*
 test*
 
+*.zip
+
 package.json
 package-lock.json
