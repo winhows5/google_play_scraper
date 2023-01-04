@@ -10,15 +10,15 @@ const {category_list, review_keys, review_stat_keys, retry_keys} = require('./co
 
 
 var DELIMITER = String.fromCharCode(0x1F);
-var REVIEW_DATE = new Date("2022-09-01T00:00:00.000Z");   // earliest date
+var REVIEW_DATE = new Date("2021-12-01T00:00:00.000Z");   // earliest date
 var REVIEW_LIMIT = 3000000;
 var rank_records;
 
 /* rank list is obtained according to rank.js
 */
 async function scrape_review(partition_dict, rank_records, dir) {
-    var page_count = 0;
     for (let i = 0; i < rank_records.length; i++) { 
+        var page_count = 0;
         var review_count = 0;
         csv_app_id = partition_dict.category + "_" + partition_dict.country + "_" + partition_dict.lang + "_appid";
         csv_app_name = partition_dict.category + "_" + partition_dict.country + "_" + partition_dict.lang + "_appname";
@@ -116,10 +116,13 @@ async function scrape_review(partition_dict, rank_records, dir) {
                 console.error(e);
                 var retry_list = [];
                 retry_list.push({
-                "cat_num": partition_dict.num,
-                "app_id": app_id,
-                "request_date": (new Date()).toISOString().slice(0, 10),
-                "app_page_url": "",
+                    "cat_num": partition_dict.num,
+                    "app_num": i,
+                    "app_id": app_id,
+                    "request_date": (new Date()).toISOString().slice(0, 10),
+                    "count": review_count,
+                    "info": nextPag,
+                    "app_page_url": "",
                 });
                 const retry_csv = retry_list.map(item => (
                 retry_keys.map(key => {
@@ -154,6 +157,10 @@ async function scrape_review(partition_dict, rank_records, dir) {
         }).join(DELIMITER) + '\n';
         fs.appendFileSync(dir+"app_review_stat.csv", stat_csv, console.log);
 
+        let promise = new Promise((resolve, reject) => {
+            setTimeout(() => resolve("done!"), 3000)
+          });
+        await promise;
         console.log("FINISH ONE. number: ", i);
     }
 }

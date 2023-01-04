@@ -53,8 +53,11 @@ var rank_template = {
 
 var retry_template = {
     "cat_num": 0,
+    "app_num": 0,
     "app_id": "",
     "request_date": "2022-11-12",
+    "count": 0,
+    "info": "",
     "app_page_url": "",
 }
 

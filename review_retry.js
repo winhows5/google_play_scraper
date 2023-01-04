@@ -14,12 +14,12 @@ var REVIEW_DATE = new Date("2022-09-01T00:00:00.000Z");
 var REVIEW_LIMIT = 3000000;
 var rank_records;
 
-var retry_cat = 30;
-var retry_app = 9;
+var retry_country = "US";  // Only change this one
+
 
 /* rank list is obtained according to rank.js
 */
-async function scrape_review(partition_dict, rank_records, dir) {
+async function scrape_review_retry(partition_dict, rank_records, dir, retry_app, retry_count, retry_page) {
 
     var page_count = 0;
     for (let i = retry_app; i < rank_records.length; i++) { 
@@ -35,7 +35,8 @@ async function scrape_review(partition_dict, rank_records, dir) {
         let app_name = rank_records[i][csv_app_name];
         let nextPag = null;
         if (i === retry_app) {
-            nextPag = "Co0BCooBCocBMCxUSU1FU1RBTVAgIjIwMjItMTEtMDggMDg6MTM6NDAuODMzMDYwKzAwIiw2ODc1MDEzMDc5NTUsImh0dHA6Ly9tYXJrZXQuYW5kcm9pZC5jb20vZGV0YWlscz9pZD12Mjpjb20uZ29vZ2xlLmFuZHJvaWQueW91dHViZToxIiwxLGZhbHNl";
+            review_count = retry_count;
+            nextPag = retry_page;
         }
         let hasAll = false;
         while (!hasAll) {
@@ -123,10 +124,13 @@ async function scrape_review(partition_dict, rank_records, dir) {
                 console.error(e);
                 var retry_list = [];
                 retry_list.push({
-                "cat_num": partition_dict.num,
-                "app_id": app_id,
-                "request_date": (new Date()).toISOString().slice(0, 10),
-                "app_page_url": "",
+                    "cat_num": partition_dict.num,
+                    "app_num": i,
+                    "app_id": app_id,
+                    "request_date": (new Date()).toISOString().slice(0, 10),
+                    "count": review_count,
+                    "info": nextPag,
+                    "app_page_url": "",
                 });
                 const retry_csv = retry_list.map(item => (
                 retry_keys.map(key => {
@@ -178,36 +182,53 @@ async function read_csv (partition_dict) {
 }
 
 async function main() {
-    for (let i = retry_cat; i < retry_cat+1; i++) {
+
+    // read from retry.csv
+    var retry_list = [];
+    fs.createReadStream("APP_review/" + retry_country + "_review/" + ".retry.csv")
+    .pipe(csv({ separator: DELIMITER }))
+    .on('data', (data) => {
+        retry_list.push(data);
+    })
+    .on('end', () => {console.log("read retry data: ", retry_list);});
+    fs.unlinkSync("APP_review/" + retry_country + "_review/" + ".retry.csv");
+    let retry_csv_read = new Promise((resolve, reject) => {
+        setTimeout(() => resolve("done!"), 1000)
+    });
+    await retry_csv_read;
+
+    for (let k=0; k<retry_list.length; k++) {
+        let retry_entry = retry_list[k];
+        let retry_cat = retry_entry.cat_num;
+        let retry_app = retry_entry.app_num;
+        let retry_count = retry_entry.count;
+        let retry_page = retry_entry.info;
+    
         partition_dict = {
-            "num": i,
-            "category": category_list[i],
+            "num": retry_cat,
+            "category": category_list[retry_cat],
             "lang": "en",
-            "country": "US"      // US, IN, HK
+            "country": retry_country,
         }
         dir = "App_review/" + partition_dict.country + "_review" + "/";
         if (!fs.existsSync(dir)){
             fs.mkdirSync(dir, { recursive: true });
         }
-
+    
         read_csv(partition_dict);
         
         let promise = new Promise((resolve, reject) => {
             setTimeout(() => resolve("done!"), 3000)
-          });
+        });
         await promise;
-
-        // wirte titles
-        // const titles = review_keys.join(DELIMITER) + '\n';
-        // fs.writeFileSync(dir+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", titles, console.log);
-        // const stat_titles = review_stat_keys.join(DELIMITER) + '\n';
-        // fs.writeFileSync(dir+"app_review_stat.csv", stat_titles, console.log);
         
         // keep only frst 20 apps
         rank_records = rank_records.slice(0, 20);
         console.log("Category: ", i, rank_records.length);
-        await scrape_review(partition_dict, rank_records, dir);
+        await scrape_review_retry(partition_dict, rank_records, dir, retry_app, retry_count, retry_page);
     }
+
+    
 }
 
 main();
