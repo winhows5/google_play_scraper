@@ -167,7 +167,7 @@ async function scrape_review(partition_dict, rank_records, dir) {
 
 async function read_csv (partition_dict) {
     rank_records = [];
-    fs.createReadStream("APP_rank_list/Rank_track7days_WY/" + partition_dict.country+"_avg_rank_out_df.csv")
+    fs.createReadStream("App_rank_list/Rank_track7days_WY/" + partition_dict.country+"_avg_rank_out_df.csv")
            .pipe(csv())
            .on('data', (data) => {
              rank_records.push(data);
