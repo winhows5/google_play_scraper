@@ -19,7 +19,7 @@ var retry_country = "US";  // Only change this one
 
 /* rank list is obtained according to rank.js
 */
-async function scrape_review_retry(partition_dict, rank_records, dir, retry_app, retry_count, retry_page) {
+async function scrape_review_retry(partition_dict, rank_records, dir, retry_app, retry_count, retry_page, retry_last_date, retry_first_date) {
 
     var page_count = 0;
     for (let i = retry_app; i < rank_records.length; i++) { 
@@ -29,13 +29,15 @@ async function scrape_review_retry(partition_dict, rank_records, dir, retry_app,
         console.log("Current app: ", rank_records[i][csv_app_id]);
 
         let date_latest = null;
-        let date_earliest = new Date();
+        let date_earliest = (new Date()).toISOString();
 
         let app_id = rank_records[i][csv_app_id];
         let app_name = rank_records[i][csv_app_name];
         let nextPag = null;
         if (i === retry_app) {
             review_count = retry_count;
+            date_latest = retry_last_date;
+            date_earliest = retry_first_date;
             nextPag = retry_page;
         }
         let hasAll = false;
@@ -93,10 +95,10 @@ async function scrape_review_retry(partition_dict, rank_records, dir, retry_app,
                     review_count += 1;
 
                     if (date_latest === null) {
-                        date_latest = new Date(v2[j].date);
+                        date_latest = v2[j].date;
                     }
-                    if (date_earliest > new Date(v2[j].date)) {   
-                        date_earliest = new Date(v2[j].date);
+                    if (new Date(date_earliest) > new Date(v2[j].date)) {   
+                        date_earliest = v2[j].date;
                     }
                 }
                   
@@ -185,15 +187,23 @@ async function main() {
 
     // read from retry.csv
     var retry_list = [];
-    fs.createReadStream("APP_review/" + retry_country + "_review/" + ".retry.csv")
+    let dir = "App_review/" + retry_country + "_review" + "/";
+    if (!fs.existsSync(dir)){
+        fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.createReadStream(dir + ".retry.csv")
     .pipe(csv({ separator: DELIMITER }))
     .on('data', (data) => {
         retry_list.push(data);
     })
-    .on('end', () => {console.log("read retry data: ", retry_list);});
-    fs.unlinkSync("APP_review/" + retry_country + "_review/" + ".retry.csv");
+    .on('end', () => {
+        console.log("read retry data: ", retry_list);
+        fs.unlinkSync("App_review/" + retry_country + "_review/" + ".retry.csv");
+    });
+    
     let retry_csv_read = new Promise((resolve, reject) => {
-        setTimeout(() => resolve("done!"), 1000)
+        setTimeout(() => resolve("done!"), 3000)
     });
     await retry_csv_read;
 
@@ -203,16 +213,14 @@ async function main() {
         let retry_app = retry_entry.app_num;
         let retry_count = retry_entry.count;
         let retry_page = retry_entry.info;
+        let retry_last_date = retry_entry.last_date;
+        let retry_first_date = retry_entry.first_date;
     
         partition_dict = {
             "num": retry_cat,
             "category": category_list[retry_cat],
             "lang": "en",
             "country": retry_country,
-        }
-        dir = "App_review/" + partition_dict.country + "_review" + "/";
-        if (!fs.existsSync(dir)){
-            fs.mkdirSync(dir, { recursive: true });
         }
     
         read_csv(partition_dict);
@@ -224,8 +232,8 @@ async function main() {
         
         // keep only frst 20 apps
         rank_records = rank_records.slice(0, 20);
-        console.log("Category: ", i, rank_records.length);
-        await scrape_review_retry(partition_dict, rank_records, dir, retry_app, retry_count, retry_page);
+        console.log("Category: ", retry_cat, rank_records.length);
+        await scrape_review_retry(partition_dict, rank_records, dir, retry_app, retry_count, retry_page, retry_last_date, retry_first_date);
     }
 
     

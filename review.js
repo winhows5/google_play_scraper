@@ -25,7 +25,7 @@ async function scrape_review(partition_dict, rank_records, dir) {
         console.log("Current app: ", rank_records[i][csv_app_id]);
 
         let date_latest = null;
-        let date_earliest = new Date();
+        let date_earliest = (new Date()).toISOString();
 
         let app_id = rank_records[i][csv_app_id];
         let app_name = rank_records[i][csv_app_name];
@@ -85,10 +85,10 @@ async function scrape_review(partition_dict, rank_records, dir) {
                     review_count += 1;
 
                     if (date_latest === null) {
-                        date_latest = new Date(v2[j].date);
+                        date_latest = v2[j].date;
                     }
-                    if (date_earliest > new Date(v2[j].date)) {   
-                        date_earliest = new Date(v2[j].date);
+                    if (new Date(date_earliest) > new Date(v2[j].date)) {   
+                        date_earliest = v2[j].date;
                     }
                 }
                   
@@ -122,6 +122,8 @@ async function scrape_review(partition_dict, rank_records, dir) {
                     "request_date": (new Date()).toISOString().slice(0, 10),
                     "count": review_count,
                     "info": nextPag,
+                    "last_date": date_latest,
+                    "first_date": date_earliest,
                     "app_page_url": "",
                 });
                 const retry_csv = retry_list.map(item => (
@@ -179,13 +181,13 @@ async function read_csv (partition_dict) {
 
 async function main() {
     for (let i = 0; i < 32; i++) {
-        partition_dict = {
+        let partition_dict = {
             "num": i,
             "category": category_list[i],
             "lang": "en",
             "country": "US"      // US, IN, HK
         }
-        dir = "App_review/" + partition_dict.country + "_review" + "/";
+        let dir = "App_review/" + partition_dict.country + "_review" + "/";
         if (!fs.existsSync(dir)){
             fs.mkdirSync(dir, { recursive: true });
         }
@@ -203,6 +205,10 @@ async function main() {
         if (!fs.existsSync(dir+"app_review_stat.csv")) {
             const stat_titles = review_stat_keys.join(DELIMITER) + '\n';
             fs.writeFileSync(dir+"app_review_stat.csv", stat_titles, console.log);
+        }
+        if (!fs.existsSync(dir+".retry.csv")) {
+            const retry_titles = retry_keys.join(DELIMITER) + '\n';
+            fs.writeFileSync(dir+".retry.csv", retry_titles, console.log);
         }
 
         // keep only frst 20 apps

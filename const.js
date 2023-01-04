@@ -58,6 +58,8 @@ var retry_template = {
     "request_date": "2022-11-12",
     "count": 0,
     "info": "",
+    "last_date": "2013-11-10T18:31:42.174Z",
+    "first_date": "2013-11-10T18:31:42.174Z",
     "app_page_url": "",
 }
 
@@ -88,8 +90,8 @@ var review_stat_template = {
     "category": "",
     "category_rank": 1.0,
     "review_amounts": 0,
-    "last_review_date": "Wed Dec 28 2022 20:04:46 GMT-0500 (Eastern Standard Time)",
-    "first_review_date": "Wed Dec 28 2022 20:04:46 GMT-0500 (Eastern Standard Time)",
+    "last_review_date": "2013-11-10T18:31:42.174Z",
+    "first_review_date": "2013-11-10T18:31:42.174Z",
     "scrape_date": "2013-11-10",
 }
 
