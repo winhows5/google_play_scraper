@@ -203,8 +203,10 @@ async function main() {
         await promise;
 
         // wirte titles
-        const titles = review_keys.join(DELIMITER) + '\n';
-        fs.writeFileSync(dir+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", titles, console.log);
+        if (!fs.existsSync(dir+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv")) {
+            const titles = review_keys.join(DELIMITER) + '\n';
+            fs.writeFileSync(dir+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", titles, console.log);
+        }
         if (!fs.existsSync(dir+"app_review_stat.csv")) {
             const stat_titles = review_stat_keys.join(DELIMITER) + '\n';
             fs.writeFileSync(dir+"app_review_stat.csv", stat_titles, console.log);
