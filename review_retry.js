@@ -212,36 +212,33 @@ async function main() {
     });
     await retry_csv_read;
 
-    for (let k=0; k<retry_list.length; k++) {
-        let retry_entry = retry_list[k];
-        let retry_cat = parseInt(retry_entry.cat_num);
-        let retry_app = parseInt(retry_entry.app_num);
-        let retry_count = parseInt(retry_entry.count);
-        let retry_page = retry_entry.info;
-        let retry_last_date = retry_entry.last_date;
-        let retry_first_date = retry_entry.first_date;
-    
-        partition_dict = {
-            "num": retry_cat,
-            "category": category_list[retry_cat],
-            "lang": "en",
-            "country": retry_country,
-        }
-    
-        read_csv(partition_dict);
-        
-        let promise = new Promise((resolve, reject) => {
-            setTimeout(() => resolve("done!"), 3000)
-        });
-        await promise;
-        
-        // keep only frst 20 apps
-        rank_records = rank_records.slice(0, 20);
-        console.log("Category: ", retry_cat, rank_records.length);
-        await scrape_review_retry(partition_dict, rank_records, dir, retry_app, retry_count, retry_page, retry_last_date, retry_first_date);
+    let k=retry_list.length-1;
+    let retry_entry = retry_list[k];
+    let retry_cat = parseInt(retry_entry.cat_num);
+    let retry_app = parseInt(retry_entry.app_num);
+    let retry_count = parseInt(retry_entry.count);
+    let retry_page = retry_entry.info;
+    let retry_last_date = retry_entry.last_date;
+    let retry_first_date = retry_entry.first_date;
+
+    partition_dict = {
+        "num": retry_cat,
+        "category": category_list[retry_cat],
+        "lang": "en",
+        "country": retry_country,
     }
 
+    read_csv(partition_dict);
     
+    let promise = new Promise((resolve, reject) => {
+        setTimeout(() => resolve("done!"), 3000)
+    });
+    await promise;
+    
+    // keep only frst 20 apps
+    rank_records = rank_records.slice(0, 20);
+    console.log("Category: ", retry_cat, rank_records.length);
+    await scrape_review_retry(partition_dict, rank_records, dir, retry_app, retry_count, retry_page, retry_last_date, retry_first_date);
 }
 
 main();
