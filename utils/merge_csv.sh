@@ -21,4 +21,5 @@ do
 done
 
 num=`wc -l < $outfile`
-echo "Lines sum: $((total_num+1)). Lines in out file: $num"
+echo "Lines sum: $((total_num+1))"
+echo "Lines in outfile: $num"
