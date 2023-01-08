@@ -12,6 +12,12 @@ const {category_list, review_keys, review_stat_keys, retry_keys} = require('./co
 var DELIMITER = String.fromCharCode(0x1F);
 var REVIEW_DATE = new Date("2021-12-01T00:00:00.000Z");   // earliest date
 var REVIEW_LIMIT = 3000000;
+
+// change here for distributed servers
+var REVIEW_COUNTRY = "US";
+var PART_START = 0;      // partition for category range
+var PART_END = 32;
+
 var rank_records;
 
 /* rank list is obtained according to rank.js
@@ -183,12 +189,12 @@ async function read_csv (partition_dict) {
 }
 
 async function main() {
-    for (let i = 6; i < 7; i++) {
+    for (let i = PART_START; i < PART_END; i++) {
         let partition_dict = {
             "num": i,
             "category": category_list[i],
             "lang": "en",
-            "country": "US"      // US, IN, HK
+            "country": REVIEW_COUNTRY      // US, IN, HK
         }
         let dir = "App_review/" + partition_dict.country + "_review" + "/";
         if (!fs.existsSync(dir)){
