@@ -6,7 +6,7 @@ Personal scraper used to collect data for research.
 
 - **rank.js** is meant to get top100 apps from 32 categories.
 - **similar.js** is meant to get similar apps from the rank_app list.
-- **review.js** is meant to get 3-month (starts from 2022-09-01) reviews from the rank_app list (but only top20). 
+- **review.js** is meant to get 12-months (starts from 2021-12-01) reviews from the rank_app list (but only top20). 
 - **info.js** is meant to get app information details from the rank_app list (but only top20). 
 
 ### Data Format
@@ -34,17 +34,17 @@ var review_template = {
     "app_id": "",
     "app_name": "",
     "country": "US",
-    "language": "en",
+    "language": "us",
     "post_date": "2013-11-10T18:31:42.174Z",
     "review_id": "",
     "user_name": "",
     "user_image": "",
     "score": 0,
     "review_title": "",
-    "review_text": "{\"text\":\"\"}",
+    "review_text": "A JSON object",
     "is_replied": 0,
     "reply_date": "2013-11-10T18:31:42.174Z",
-    "reply_text": "{\"text\":\"\"}",
+    "reply_text": "A JSON object",
     "app_version": "",
     "thumbsup": 0,
     "url": "",
@@ -63,7 +63,7 @@ var review_stat_template = {
     "review_amounts": 0,
     "last_review_date": "2013-11-10T18:31:42.174Z",
     "first_review_date": "2013-11-10T18:31:42.174Z",
-    "scrape_date": "2013-11-10T18:31:42.174Z",
+    "scrape_date": "2013-11-10",
 }
 ```
 
@@ -74,8 +74,8 @@ var info_template = {
     "app_id": "",
     "app_name": "",
     "country": "US",
-    "language": "en",
-    "app_description": "{\"text\":\"\"}",
+    "language": "us",
+    "app_description": "A JSON object",
     "release_date": "May 30, 2013",
     "is_free": 1,
     "price": 0,
