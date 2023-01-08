@@ -7,6 +7,7 @@ US*
 test*
 
 *.zip
+.DS_Store
 
 package.json
 package-lock.json
