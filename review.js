@@ -104,14 +104,17 @@ async function scrape_review(partition_dict, rank_records, dir) {
                 page_count += 1;
                 console.log("next page: ", v.nextPaginationToken);
                 console.log("current len: ", result.length, "total reviews: ", review_count, " page: ", page_count);
-                const app_review_csv = result.map(item => (
-                review_keys.map(key =>{
-                    return item[key];
-                }).join(DELIMITER)
-                ));
-                
-                const app_review = app_review_csv.join('\n') + '\n';
-                fs.appendFileSync(dir +partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", app_review, console.log);
+
+                if (result.length > 0) {
+                    const app_review_csv = result.map(item => (
+                        review_keys.map(key =>{
+                            return item[key];
+                        }).join(DELIMITER)
+                        ));
+                        
+                    const app_review = app_review_csv.join('\n') + '\n';
+                    fs.appendFileSync(dir +partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", app_review, console.log);
+                }
                 console.log("review %d of source: %d %s\n", v2.length, i, app_id);
                 
                 if (nextPag === null) {
