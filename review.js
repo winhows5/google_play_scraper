@@ -48,7 +48,7 @@ async function scrape_review(partition_dict, rank_records, dir) {
                 throttle: 1})
             .then( v => {
                 v2 = v.data;
-                if (v2.length === 0) {
+                if (v2.length === 0 && page_count !== 0) {
                     throw new Error("Length Exception");
                 }
                 var result = [];
