@@ -15,6 +15,7 @@ var REVIEW_LIMIT = 3000000;
 
 // change here for distributed servers
 var REVIEW_COUNTRY = "US";
+var REVIEW_LANG = "en_US";
 var PART_START = 0;      // partition for category range
 var PART_END = 32;
 
@@ -23,11 +24,19 @@ var rank_records;
 /* rank list is obtained according to rank.js
 */
 async function scrape_review(partition_dict, rank_records, dir) {
-    for (let i = 0; i < rank_records.length; i++) { 
+
+    // Additional codes for easy retry
+    let tmp = 0;
+    if (partition_dict.num === PART_START) {
+        tmp = PART_START;
+    }
+
+    let rank_lang = "en";
+    for (let i = tmp; i < rank_records.length; i++) { 
         var page_count = 0;
         var review_count = 0;
-        csv_app_id = partition_dict.category + "_" + partition_dict.country + "_" + partition_dict.lang + "_appid";
-        csv_app_name = partition_dict.category + "_" + partition_dict.country + "_" + partition_dict.lang + "_appname";
+        csv_app_id = partition_dict.category + "_" + partition_dict.country + "_" + rank_lang + "_appid";
+        csv_app_name = partition_dict.category + "_" + partition_dict.country + "_" + rank_lang + "_appname";
         console.log("Current app: ", rank_records[i][csv_app_id]);
 
         let date_latest = null;
@@ -155,7 +164,7 @@ async function scrape_review(partition_dict, rank_records, dir) {
 
         }
         
-        csv_app_rank = partition_dict.category + "_" + partition_dict.country + "_" + partition_dict.lang + "avg_rank";
+        csv_app_rank = partition_dict.category + "_" + partition_dict.country + "_" + rank_lang + "avg_rank";
         let stat_dict = {
             "app_id": app_id,
             "app_name": app_name,
@@ -196,7 +205,7 @@ async function main() {
         let partition_dict = {
             "num": i,
             "category": category_list[i],
-            "lang": "en",
+            "lang": REVIEW_LANG,
             "country": REVIEW_COUNTRY      // US, IN, HK
         }
         let dir = "App_review/" + partition_dict.country + "_review" + "/";

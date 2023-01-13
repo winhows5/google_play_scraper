@@ -14,7 +14,8 @@ var REVIEW_DATE = new Date("2021-12-01T00:00:00.000Z");
 var REVIEW_LIMIT = 3000000;
 var rank_records;
 
-var retry_country = "US";  // Only change this one
+var retry_country = "US";  // Only change this two
+var retry_lang = "en_US";
 
 
 /* rank list is obtained according to rank.js
@@ -22,10 +23,11 @@ var retry_country = "US";  // Only change this one
 async function scrape_review_retry(partition_dict, rank_records, dir, retry_app, retry_count, retry_page, retry_last_date, retry_first_date) {
 
     var page_count = 0;
+    let rank_lang = "en";
     for (let i = retry_app; i < rank_records.length; i++) { 
         var review_count = 0;
-        csv_app_id = partition_dict.category + "_" + partition_dict.country + "_" + partition_dict.lang + "_appid";
-        csv_app_name = partition_dict.category + "_" + partition_dict.country + "_" + partition_dict.lang + "_appname";
+        csv_app_id = partition_dict.category + "_" + partition_dict.country + "_" + rank_lang + "_appid";
+        csv_app_name = partition_dict.category + "_" + partition_dict.country + "_" + rank_lang + "_appname";
         console.log("Current app: ", rank_records[i][csv_app_id]);
 
         let date_latest = null;
@@ -156,7 +158,7 @@ async function scrape_review_retry(partition_dict, rank_records, dir, retry_app,
 
         }
         
-        csv_app_rank = partition_dict.category + "_" + partition_dict.country + "_" + partition_dict.lang + "avg_rank";
+        csv_app_rank = partition_dict.category + "_" + partition_dict.country + "_" + rank_lang + "avg_rank";
         let stat_dict = {
             "app_id": app_id,
             "app_name": app_name,
@@ -224,7 +226,7 @@ async function main() {
     partition_dict = {
         "num": retry_cat,
         "category": category_list[retry_cat],
-        "lang": "en",
+        "lang": retry_lang,
         "country": retry_country,
     }
 
