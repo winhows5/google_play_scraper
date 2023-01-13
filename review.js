@@ -28,7 +28,7 @@ async function scrape_review(partition_dict, rank_records, dir) {
     // Additional codes for easy retry
     let tmp = 0;
     if (partition_dict.num === PART_START) {
-        tmp = PART_START;
+        tmp = 0;
     }
 
     let rank_lang = "en";
