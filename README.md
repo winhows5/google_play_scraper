@@ -111,7 +111,9 @@ All other CSV files use ASCII 0x1F (Unit Separator) as the delimiter.
   
 ### Incoherence
 
-Some apps are inaccessible due to reasons, which may cause incoherence between different lists. Take care when dealing with such apps:
+Some apps are inaccessible due to reasons, which may cause incoherence between different lists. 
+
+Take care when dealing with such apps in US:
 
 | App Name                                   | App ID                                            | Date of awareness |
 | -----------                                | -----------                                       | -----------       |
@@ -122,4 +124,76 @@ Some apps are inaccessible due to reasons, which may cause incoherence between d
 | IPTV Smarters Pro                          | com.nst.iptvsmarterstvbox                         | 2023-01-02        |
 
 
+Take care when dealing with such apps in IN:
 
+| App Name                                   | App ID                                            | Date of awareness |
+| -----------                                | -----------                                       | -----------       |
+| rto vehicle information app                | rto.vehical.information.carinfo.rtoexam.address   | 2023-03-02        |
+| Sketchme: Cartoon Photo Editor             | com.jbnfa.photo.sketme.toonme                     | 2023-03-02        |
+| Beauty Camera - Selfie Camera              | ai.beautyplus.edit                                | 2023-03-02        |
+| XFace: Virtual Makeup Artist               | com.xface.beautymakeup.selfiecamera               | 2023-03-02        |
+| Marathi Calendar 2023 - मराठी               | com.mahalaxmi_marathi_calendar                    | 2023-03-02        |
+| GoGoAnime Anime Online                     | gogoanime.botagora                                | 2023-03-02        |
+| Anime tv - Anime Watching App              | com.animetv.sub.dub                               | 2023-03-02        |
+| Robot Car Transform Robo Wars              | com.rsg.grand.ultimate.robot.car.transform.city.battle.shooting.fight.simulator.games                     | 2023-03-02        |
+| Live Cricket TV HD Star Sports             | star.sportsupdates                                | 2023-03-02        |
+| EasyTalk - Global Calling App              | com.easytalk.call                                 | 2023-03-02        |
+| Messenger Lite                             | com.facebook.mlite                                | 2023-03-02        |
+| Sexy Girl Live Video Call                  | com.xvvazlivevideo.vieoladalcallazaq              | 2023-03-02        |
+| Ladki Se Baat Karane Vala App              | com.Video345.livecallcde                          | 2023-03-02        |
+| Ladki Se Baat Karne Wala App               | com.VideocallLive17LvideO.Nop                     | 2023-03-02        |
+| IN Sexy Girls Video Call                   | com.insexygirls.videocall                         | 2023-03-02        |
+| Ladki se baat karne wala apps              | com.NewLookMatrix.VideoCall                       | 2023-03-02        |
+| Cricket Live TV Streaming                  | com.starsports.totariapps.starsports.hd           | 2023-03-02        |
+| Cricket Live TV Streaming                  | com.starsports.hassan.starsports.apps.star.sports | 2023-03-02        |
+| Zili Short Video App for India             | com.funnypuri.client                              | 2023-03-02        |
+| Get Daily FFF Diamonds Guide               | com.enter.howtogetdiamond.fff                     | 2023-03-02        |
+| Zupee Ludo Gold - Tips                     | com.playings.tvfree.ludooo                        | 2023-03-02        |
+| Cash PaPa Pro                              | com.personal.papa.pro.new                         | 2023-03-02        |
+| Financial Cash                             | com.financial.book.com.cc                         | 2023-03-02        |
+| Blood Pressure App                         | com.bloodpressure.bptrackerapp                    | 2023-03-02        |
+| Blood Pressure Tracker                     | com.bloodpressurechecker.bpmonitor.bptracker      | 2023-03-02        |
+| Phone Number Locator Caller id             | com.scorpio.callertrueid.truecaller.callerid      | 2023-03-02        |
+| Pregnancy Test & Tracker                   | com.tpf.gavw.mcyzj                                | 2023-03-02        |
+| All Video Downloader                       | hdnewvideoplayer.latestvideodownloader.vidvideoplayer  | 2023-03-02        |
+| Launcher iOS 16                            | com.luutinhit.ioslauncher                         | 2023-03-02        |
+| Ludo Gold : Play & Win Super               | com.z.ludo                                        | 2023-03-02        |
+| Live Cricket TV: Cricket Score             | my.a                                              | 2023-03-02        |
+| Cricket ALL STARS Sport                    | com.bdvapps.cricketall_stars                      | 2023-03-02        |
+| speedbooster-live video proxy              | com.speedfiypro.app                               | 2023-03-02        |
+| All Video Downloader                       | com.browsevideo.videoplayer.downloader            | 2023-03-02        |
+| All Video Downloader                       | com.videowhatspehla.chatversiondownload           | 2023-03-02        |
+| Public Bus simulator 2022                  | com.sa.real.bus.simulator                         | 2023-03-02        |
+
+
+Take care when dealing with such apps in HK:
+
+| App Name                                   | App ID                                            | Date of awareness |
+| -----------                                | -----------                                       | -----------       |
+| Beauty Camera - Selfie Camera              | ai.beautyplus.edit                                | 2023-03-02        |
+| Sketchme: Cartoon Photo Editor             | com.jbnfa.photo.sketme.toonme                     | 2023-03-02        |
+| 嗨小說                                      | com.kuaidu.readbook.reds                          | 2023-03-02        |
+| Strange Spider Hero: Miami Rop             | fire.games.strange.spider.rope.hero               | 2023-03-02        |
+| Hong Kong TV                               | hktv.reborn                                       | 2023-03-02        |
+| Live yassine tv apk ياسين تيفي             | apk.yacinetv.yacinetvapk                          | 2023-03-02        |
+| FizzBuzz                                   | com.startcech.wizbiz                              | 2023-03-02        |
+| مباشر للمباريات المشفرة                    | feel3ard.abathmo                                  | 2023-03-02        |
+| StayHomeSaf                                | com.compathnion.equarantine                       | 2023-03-02        |
+| Blood Pressure App                         | com.bloodpressure.bptrackerapp                    | 2023-03-02        |
+| Blood Pressure App: BP Monitor             | bloodpressureapp.bloodpressuremonitor.bloodpressuretracker     | 2023-03-02        |
+| Rainbow - Friends Aid                      | com.moder_rainbow_friends.robux_assit_roblox_mod  | 2023-03-02        |
+| Wallpaper Toca Life Town World             | com.fullhdtocabocawallpapers.mobgapps             | 2023-03-02        |
+| One Cleaner - Easy & Fast                  | com.deep.super.mars.cleaner                       | 2023-03-02        |
+| Pregnancy Test & Tracker                   | com.tpf.gavw.mcyzj                                | 2023-03-02        |
+| CallMe: Tune Screen                        | com.callmetunescreen.app                          | 2023-03-02        |
+| 经典老歌手机铃声300首 抖音铃声                 | com.bestringtone2017                              | 2023-03-02        |
+| zenly - your world                         | app.zenly.locator                                 | 2023-03-02        |
+| 世界杯直播-2022年卡塔尔世界杯赛程赛果           | com.sjbzb.sports.app                              | 2023-03-02        |
+| 足球世界杯-2022卡塔尔世界杯直播,世界杯比分,赛事推荐   | com.football.live.footsjb.app                     | 2023-03-02        |
+| Live football TV                           | com.widex.goalkolik                               | 2023-03-02        |
+| Live Ten Sports                            | com.asadapps.live.ten.sports                      | 2023-03-02        |
+| Live Football TV Streaming HD              | esport.livefootballscores.todayhdstreaming        | 2023-03-02        |
+| Bubble Booster                             | com.bubble.booster                                | 2023-03-02        |
+| Phone Cleaner                              | com.bingo.cooler.phonecleaner                     | 2023-03-02        |
+| 电视直播极速TV 新闻节目直播 广播电台 IPTV网络电视         | com.douglassmaster.tv                             | 2023-03-02        |
+| 蓝鲸影视-自由畅看电影、剧集                    | com.mqtech.vediogo                                | 2023-03-02        |

@@ -16,7 +16,7 @@ var rank_records;
 */
 async function scrape_app_info(partition_dict, rank_records, dir) {
     var app_count = 0;
-    for (let i = 618; i < rank_records.length; i++) { 
+    for (let i = 0; i < rank_records.length; i++) { 
         console.log("Current app: ", rank_records[i].app_id);
         let app_id = rank_records[i].app_id;
         await gplay.app({appId: app_id, 
@@ -101,7 +101,7 @@ async function main() {
         "num": null,
         "category": null,
         "lang": "en",
-        "country": "US"      // US, IN, HK
+        "country": "HK"      // US, IN, HK
     }
     dir = "App_info/";
     if (!fs.existsSync(dir)){
