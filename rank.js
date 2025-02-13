@@ -16,7 +16,7 @@ export async function scrapeRankings() {
             const apps = await gplay.list({
                 category: category,
                 collection: gplay.collection.TOP_FREE,
-                num: 1,
+                num: 50,
                 country: 'US',
                 fullDetail: true
             });
