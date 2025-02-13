@@ -1,83 +1,52 @@
-/*
-Get the top 100 rank list from 32 categories.
-*/
+import gplay from 'google-play-scraper';
+import { insertAppRank } from './db.js';
 
+// List of all Google Play categories
+const categories = [
+    'GAME', 'FAMILY', 'COMMUNICATION', 'PRODUCTIVITY', 'SOCIAL',
+    'PHOTOGRAPHY', 'ENTERTAINMENT', 'TOOLS', 'BUSINESS', 'LIFESTYLE',
+    'EDUCATION', 'FINANCE', 'HEALTH_AND_FITNESS', 'SHOPPING', 'TRAVEL_AND_LOCAL'
+];
 
-const gplay = require('google-play-scraper');
-const fs = require('fs');
-const {category_list, dict_keys} = require('./const');
+export async function scrapeRankings() {
+    for (const category of categories) {
+        try {
+            console.log(`Scraping category: ${category}`);
+            
+            const apps = await gplay.list({
+                category: category,
+                collection: gplay.collection.TOP_FREE,
+                num: 1,
+                country: 'US',
+                fullDetail: true
+            });
 
-function get_date() {
-    var today = new Date();
-    var dd = String(today.getDate()).padStart(2, '0');
-    var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
-    var yyyy = today.getFullYear();
+            const scrapeDate = new Date().toISOString().split('T')[0];
 
-    today = yyyy + mm + dd;
-    return today;
-}
- 
+            for (let i = 0; i < apps.length; i++) {
+                const app = apps[i];
+                const rankData = {
+                    app_id: app.appId,
+                    app_name: app.title,
+                    category: category,
+                    app_url: app.url,
+                    rank: i + 1,
+                    scrape_date: scrapeDate
+                };
 
-async function scrape_rank (partition_dict) {
-    let result = [];
-    const rank_list = gplay.list({
-        category: partition_dict.category,
-        collection: gplay.collection.TOP_FREE,
-        num: 100,
-        country: partition_dict.country,
-        fullDetail: true,
-        throttle: 50,
-    });
-    
-    await rank_list.then(v => {
-        for (let i = 0; i < v.length; i++) {
-            let dict = {
-                "app_id": v[i].appId,
-                "app_name": "\"" + v[i].title + "\"",
-                "app_page_url": v[i].url,
-                "source": "stratified",
-                "source_app": "stratified",
-                "rank_at_souce": i+1,
-                "rank_method": "Top Free",
-                "category": v[i].genreId,
-                "request_date": (new Date()).toISOString().slice(0, 10)
+                await insertAppRank(rankData);
+                console.log(`Inserted rank data for ${app.title}`);
             }
-            result.push(dict);          
+
+            // Add delay between categories
+            await new Promise(resolve => setTimeout(resolve, process.env.SCRAPE_DELAY || 1000));
+        } catch (error) {
+            console.error(`Error scraping category ${category}:`, error);
         }
-        const result_csv = result.map(item => (
-            dict_keys.map(key => {
-                return item[key];
-            }).join(',')
-            ));
-          
-        const result_string = result_csv.join('\n') + '\n';
-        fs.appendFileSync(partition_dict.country+"_rank_" + get_date() + "/"+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", result_string, console.log);
-
-        console.log("source num: %d\n", partition_dict.num);
-        return v;
-    }, console.log);
-}
-
-async function main() {
-
-    for (let i = 0; i < 32; i++) {
-        partition_dict = {
-            "num": i,
-            "category": category_list[i],
-            "lang": "en",
-            "country": "US"      // US, IN, HK
-        }
-        dir = partition_dict.country+"_rank_" + get_date() + "/";
-        if (!fs.existsSync(dir)){
-            fs.mkdirSync(dir);
-        }
-        // wirte titles
-        const titles = dict_keys.join(',') + '\n';
-        fs.writeFileSync(dir+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", titles, console.log);
-
-        console.log("Range: ", i);
-        await scrape_rank(partition_dict);
     }
 }
 
-main();
+// Run if called directly
+if (process.argv[1] === new URL(import.meta.url).pathname) {
+    scrapeRankings().catch(console.error);
+}
