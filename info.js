@@ -3,10 +3,10 @@ Get the app information from a app list. This list is stored as review_stat.csv.
 */
 
 
-const gplay = require('google-play-scraper');
-const fs = require('fs');
-const csv = require('csv-parser');
-const {info_keys, retry_keys} = require('./const');
+import gplay from 'google-play-scraper';
+import fs from 'fs';
+import csv from 'csv-parser';
+import { info_keys, retry_keys } from './const.js';
 
 
 var DELIMITER = String.fromCharCode(0x1F);

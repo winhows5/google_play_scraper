@@ -3,10 +3,10 @@ Get the similar apps from a app list. This list is obtained by rank.js.
 */
 
 
-const gplay = require('google-play-scraper');
-const fs = require('fs');
-const csv = require('csv-parser');
-const {category_list, dict_keys, retry_keys} = require('./const');
+import { gplay } from 'google-play-scraper';
+import { appendFileSync, createReadStream, readFileSync } from 'fs';
+import csv from 'csv-parser';
+import { category_list, dict_keys, retry_keys } from './const';
 
 
 /* MUST be used after rank.js
@@ -45,7 +45,7 @@ async function scrape_similar (partition_dict, rank_records) {
                 ));
                 
             const app_similar = app_similar_csv.join('\n') + '\n';
-            fs.appendFileSync(partition_dict.country+"/"+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", app_similar, console.log);
+            appendFileSync(partition_dict.country+"/"+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", app_similar, console.log);
             console.log("snowball %d of Source: %d %s\n", v2.length, i, app_id);
         })
         .catch((e) => {
@@ -64,7 +64,7 @@ async function scrape_similar (partition_dict, rank_records) {
                 }).join(',')
                 ));
             const retry_string = retry_csv.join('\n') + '\n';
-            fs.appendFileSync(".retry.csv", retry_string, console.log);
+            appendFileSync(".retry.csv", retry_string, console.log);
             app_count += 1;
             console.log(total, " process: ", app_count);
         })
@@ -72,12 +72,10 @@ async function scrape_similar (partition_dict, rank_records) {
 }
 
 
-
-var download_record;   // used for partial re-downloading
 var rank_records;
 async function read_csv (partition_dict) {
     rank_records = [];
-    return fs.createReadStream(partition_dict.country+"/"+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv")
+    return createReadStream(partition_dict.country+"/"+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv")
            .pipe(csv())
            .on('data', (data) => {
              rank_records.push(data);
@@ -89,8 +87,6 @@ async function read_csv (partition_dict) {
 }
 
 async function main() {
-    var record_data = fs.readFileSync('.download_record.json');
-    download_record = JSON.parse(record_data);
 
     for (let i = 0; i < 32; i++) {
         

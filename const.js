@@ -1,4 +1,6 @@
-module.exports.category_list = [
+export const category_list = [
+    "APPLICATION",
+    "ANDROID_WEAR",
     "ART_AND_DESIGN",
     "AUTO_AND_VEHICLES",
     "BEAUTY",
@@ -11,6 +13,7 @@ module.exports.category_list = [
     "ENTERTAINMENT",
     "EVENTS",
     "FINANCE",
+    "FAMILY",
     "FOOD_AND_DRINK",
     "HEALTH_AND_FITNESS",
     "HOUSE_AND_HOME",
@@ -30,10 +33,29 @@ module.exports.category_list = [
     "TOOLS",
     "TRAVEL_AND_LOCAL",
     "VIDEO_PLAYERS",
-    "WEATHER"
+    "WATCH_FACE",
+    "WEATHER",
+    "GAME",
+    "GAME_ACTION",
+    "GAME_ADVENTURE",
+    "GAME_ARCADE",
+    "GAME_BOARD",
+    "GAME_CARD",
+    "GAME_CASINO",
+    "GAME_CASUAL",
+    "GAME_EDUCATIONAL",
+    "GAME_MUSIC",
+    "GAME_PUZZLE",
+    "GAME_RACING",
+    "GAME_ROLE_PLAYING",
+    "GAME_SIMULATION",
+    "GAME_SPORTS",
+    "GAME_STRATEGY",
+    "GAME_TRIVIA",
+    "GAME_WORD",
 ]
 
-module.exports.country_list = [
+export const country_list = [
     "US",
     "IN",
     "HK",
@@ -43,12 +65,10 @@ var rank_template = {
     "app_id": "",
     "app_name": "",
     "app_page_url": "",
-    "source": "stratified/snowball",
-    "source_app": "stratified / [list of apps]",
     "rank_at_souce": 0,
     "rank_method": "Top Free",
     "category": "",
-    "request_date": "2022-11-12"
+    "scrape_date": "2022-11-12"
 }
 
 var retry_template = {
@@ -99,24 +119,26 @@ var info_template = {
     "app_id": "",
     "app_name": "",
     "country": "US",
-    "language": "us",
-    "app_description": "A JSON object",
-    "release_date": "May 30, 2013",
-    "is_free": 1,
+    "company_name": "..",
+    "app_description": "string",
+    "is_free": true,
     "price": 0,
     "currency": "USD",
-    "app_score": 0,
-    "download": "",
+    "category": "",
+    "download_numbers": "",
     "total_ratings": 0,
     "total_reviews": 0,
-    "rating_hist": " {\"1\":0, \"2\":0, \"3\":0, \"4\":0, \"5\":0}",
-    "app_category": "",
-    "app_category_id": "",
-    "scrape_date": "2013-11-10",
+    "app_score": 0,
+    "ratings_distribution": " {\"1\":0, \"2\":0, \"3\":0, \"4\":0, \"5\":0}",
+    "release_date": "May 30, 2013",
+    "update_date": "May 30, 2013",
+    "scrape_date": "2013-11-10"
 }
 
-module.exports.dict_keys = Object.keys(rank_template);
-module.exports.retry_keys = Object.keys(retry_template);
-module.exports.review_keys = Object.keys(review_template);
-module.exports.review_stat_keys = Object.keys(review_stat_template);
-module.exports.info_keys = Object.keys(info_template);
+export const rank_keys = Object.keys(rank_template);
+export const retry_keys = Object.keys(retry_template);
+export const review_keys = Object.keys(review_template);
+export const review_stat_keys = Object.keys(review_stat_template);
+export const info_keys = Object.keys(info_template);
+
+export const DELIMITER = String.fromCharCode(0x1F);
