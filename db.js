@@ -46,19 +46,27 @@ async function getAppIds() {
 }
 
 async function getCategoryAppCounts() {
-    const { data, error } = await supabase
-        .from('app_ranks')
-        .select('category, count(*)')
-        .group('category');
-    
-    if (error) throw error;
-    
-    const counts = {};
-    data.forEach(item => {
-        counts[item.category] = parseInt(item.count);
-    });
-    
-    return counts;
+    // Fixed function that uses the correct Supabase query syntax
+    try {
+        // First get all app_ranks data
+        const { data, error } = await supabase
+            .from('app_ranks')
+            .select('category');
+        
+        if (error) throw error;
+        
+        // Process the data to manually count apps per category
+        const counts = {};
+        data.forEach(item => {
+            const category = item.category;
+            counts[category] = (counts[category] || 0) + 1;
+        });
+        
+        return counts;
+    } catch (error) {
+        console.error('Error getting category counts:', error);
+        throw error;
+    }
 }
 
 export {
