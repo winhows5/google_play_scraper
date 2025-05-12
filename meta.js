@@ -45,11 +45,24 @@ export async function scrapeAppMetadata() {
                     country: 'US'
                 });
 
-                // Get similar apps
-                const similarApps = await gplay.similar({
-                    appId: appId,
-                    country: 'US'
-                });
+                // Get similar apps with error handling
+                let similarApps = [];
+                try {
+                    const similarAppsResult = await gplay.similar({
+                        appId: appId,
+                        country: 'US'
+                    });
+                    
+                    // Make sure the result is an array before using map
+                    if (similarAppsResult && Array.isArray(similarAppsResult)) {
+                        similarApps = similarAppsResult.map(similar => similar.appId);
+                    } else {
+                        console.warn(`No valid similar apps data for ${appId}, using empty array`);
+                    }
+                } catch (similarError) {
+                    console.warn(`Error fetching similar apps for ${appId}: ${similarError.message}`);
+                    // Continue with an empty similar apps array
+                }
 
                 const metaData = {
                     app_id: app.appId,
@@ -66,7 +79,7 @@ export async function scrapeAppMetadata() {
                     ratings_distribution: app.histogram,
                     number_of_reviews: app.reviews,
                     app_information_update_date: convertTimestampToDate(app.updated),
-                    similar_apps: similarApps.map(similar => similar.appId),
+                    similar_apps: similarApps, // Now using our safely prepared array
                     scrape_date: new Date().toISOString().split('T')[0]
                 };
 
