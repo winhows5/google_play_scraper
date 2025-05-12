@@ -1,13 +1,8 @@
-const gplay = require('google-play-scraper');
-const { insertAppRank } = require('./db.js');
+import gplay from 'google-play-scraper';
+import { insertAppRank } from './db.js';
 
-// Updated list of Google Play categories based on latest structure
+// Complete list of Google Play categories matching the CSV and Google Play API requirements
 const categories = [
-    // Games and Family categories
-    'GAME',
-    'FAMILY',
-    
-    // Main app categories in alphabetical order
     'ART_AND_DESIGN',
     'AUTO_AND_VEHICLES',
     'BEAUTY',
@@ -42,7 +37,7 @@ const categories = [
     'WEATHER'
 ];
 
-async function scrapeRankings() {
+export async function scrapeRankings() {
     for (const category of categories) {
         try {
             console.log(`Scraping category: ${category}`);
@@ -98,10 +93,6 @@ async function scrapeRankings() {
 }
 
 // Run if called directly
-if (require.main === module) {
+if (process.argv[1] === new URL(import.meta.url).pathname) {
     scrapeRankings().catch(console.error);
 }
-
-module.exports = {
-    scrapeRankings
-};

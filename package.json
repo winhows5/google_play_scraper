@@ -1,6 +1,7 @@
 {
   "name": "google_play_scraper",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",
