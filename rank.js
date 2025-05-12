@@ -1,22 +1,48 @@
-import gplay from 'google-play-scraper';
-import { insertAppRank } from './db.js';
+const gplay = require('google-play-scraper');
+const { insertAppRank } = require('./db.js');
 
-// Complete list of Google Play categories matching the CSV and Google Play API requirements
+// Updated list of Google Play categories based on latest structure
 const categories = [
-    // Original categories
-    'GAME', 'FAMILY', 'COMMUNICATION', 'PRODUCTIVITY', 'SOCIAL',
-    'PHOTOGRAPHY', 'ENTERTAINMENT', 'TOOLS', 'BUSINESS', 'LIFESTYLE',
-    'EDUCATION', 'FINANCE', 'HEALTH_AND_FITNESS', 'SHOPPING', 'TRAVEL_AND_LOCAL',
+    // Games and Family categories
+    'GAME',
+    'FAMILY',
     
-    // Additional categories from the CSV that match Google Play API format
-    'BOOKS_AND_REFERENCE', 'PERSONALIZATION', 'MUSIC_AND_AUDIO', 'NEWS_AND_MAGAZINES',
-    'AUTO_AND_VEHICLES', 'FOOD_AND_DRINK', 'SPORTS', 'WEATHER', 'HOUSE_AND_HOME',
-    'MAPS_AND_NAVIGATION', 'VIDEO_PLAYERS', 'MEDICAL', 'ART_AND_DESIGN', 'DATING',
-    'EVENTS', 'LIBRARIES_AND_DEMO', 'PARENTING', 'COMICS', 'MAPS', 'VIDEO',
-    'ANDROID_WEAR', 'BEAUTY'
+    // Main app categories in alphabetical order
+    'ART_AND_DESIGN',
+    'AUTO_AND_VEHICLES',
+    'BEAUTY',
+    'BOOKS_AND_REFERENCE',
+    'BUSINESS',
+    'COMICS',
+    'COMMUNICATION',
+    'DATING',
+    'EDUCATION',
+    'ENTERTAINMENT',
+    'EVENTS',
+    'FINANCE',
+    'FOOD_AND_DRINK',
+    'HEALTH_AND_FITNESS',
+    'HOUSE_AND_HOME',
+    'LIBRARIES_AND_DEMO',
+    'LIFESTYLE',
+    'MAPS_AND_NAVIGATION',
+    'MEDICAL',
+    'MUSIC_AND_AUDIO',
+    'NEWS_AND_MAGAZINES',
+    'PARENTING',
+    'PERSONALIZATION',
+    'PHOTOGRAPHY',
+    'PRODUCTIVITY',
+    'SHOPPING',
+    'SOCIAL',
+    'SPORTS',
+    'TOOLS',
+    'TRAVEL_AND_LOCAL',
+    'VIDEO_PLAYERS',
+    'WEATHER'
 ];
 
-export async function scrapeRankings() {
+async function scrapeRankings() {
     for (const category of categories) {
         try {
             console.log(`Scraping category: ${category}`);
@@ -72,6 +98,10 @@ export async function scrapeRankings() {
 }
 
 // Run if called directly
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+if (require.main === module) {
     scrapeRankings().catch(console.error);
 }
+
+module.exports = {
+    scrapeRankings
+};
