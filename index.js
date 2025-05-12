@@ -1,8 +1,8 @@
-import dotenv from 'dotenv';
-import { scrapeRankings } from './rank.js';
-import { scrapeAppMetadata } from './meta.js';
-import { scrapeReviews } from './reviews.js';
-import { getCategoryAppCounts } from './db.js';
+const dotenv = require('dotenv');
+const { scrapeRankings } = require('./rank');
+const { scrapeAppMetadata } = require('./meta');
+const { scrapeReviews } = require('./reviews');
+const { getCategoryAppCounts } = require('./db');
 
 dotenv.config();
 
@@ -76,4 +76,4 @@ async function main() {
     }
 }
 
-main();
+main().catch(console.error);
