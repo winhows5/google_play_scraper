@@ -1,8 +1,9 @@
+// index.js
 import dotenv from 'dotenv';
 import { scrapeRankings } from './rank.js';
 import { scrapeAppMetadata } from './meta.js';
 import { scrapeReviews } from './reviews.js';
-import { getCategoryAppCounts } from './db.js';
+import { getCategoryAppCounts, getAppIds } from './db.js';
 
 dotenv.config();
 
@@ -10,15 +11,19 @@ async function validateBeforeContinuing() {
     console.log('Validating app counts before proceeding...');
     
     try {
+        // First get the actual total number of apps
+        const allAppIds = await getAppIds();
+        const totalUniqueApps = allAppIds.length;
+        
+        // Then get category counts
         const categoryCounts = await getCategoryAppCounts();
         let allValid = true;
-        let totalApps = 0;
         
         // Check counts for each category
         const categories = Object.keys(categoryCounts);
+        console.log(`Total categories found: ${categories.length}`);
         for (const category of categories) {
             const count = categoryCounts[category];
-            totalApps += count;
             if (count < 50) {
                 console.warn(`Warning: Category ${category} only has ${count} apps (needs 50)`);
                 allValid = false;
@@ -26,9 +31,12 @@ async function validateBeforeContinuing() {
         }
         
         // Log validation results
-        console.log(`Total apps in database: ${totalApps}`);
-        if (categories.length < 37) {
-            console.warn(`Warning: Only ${categories.length} categories found (expected 37)`);
+        console.log(`Total unique apps in database: ${totalUniqueApps}`);
+        
+        // Expected number of categories is 32 (matching rank.js)
+        const expectedCategories = 32;
+        if (categories.length < expectedCategories) {
+            console.warn(`Warning: Only ${categories.length} categories found (expected ${expectedCategories})`);
             allValid = false;
         }
         

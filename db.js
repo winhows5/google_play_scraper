@@ -32,37 +32,83 @@ async function insertAppReview(data) {
     if (error) throw error;
 }
 
-async function getAppIds() {
-    // First get all app_ids
-    const { data, error } = await supabase
-        .from('app_ranks')
-        .select('app_id');
+async function fetchAllRecords(table, columns) {
+    // Initialize variables
+    let allData = [];
+    let page = 0;
+    const pageSize = 1000; // Supabase's limit
+    let hasMore = true;
     
-    if (error) throw error;
-
-    // Then use Set to get unique values
-    const uniqueAppIds = [...new Set(data.map(item => item.app_id))];
-    return uniqueAppIds;
-}
-
-async function getCategoryAppCounts() {
-    // Fixed function that uses the correct Supabase query syntax
-    try {
-        // First get all app_ranks data
+    // Paginate through all records
+    while (hasMore) {
         const { data, error } = await supabase
-            .from('app_ranks')
-            .select('category');
+            .from(table)
+            .select(columns)
+            .range(page * pageSize, (page + 1) * pageSize - 1);
         
         if (error) throw error;
         
-        // Process the data to manually count apps per category
-        const counts = {};
+        allData = [...allData, ...data];
+        page++;
+        
+        // Check if we've received fewer than pageSize records, indicating we're done
+        hasMore = data.length === pageSize;
+    }
+    
+    console.log(`Retrieved ${allData.length} total records from ${table}`);
+    return allData;
+}
+
+async function getAppIds() {
+    try {
+        // Use pagination to get all records
+        const data = await fetchAllRecords('app_ranks', 'app_id');
+        
+        // Use Set for uniqueness
+        const uniqueAppIds = [...new Set(data.map(item => item.app_id))];
+        console.log(`getAppIds found ${uniqueAppIds.length} unique app IDs from ${data.length} total records`);
+        return uniqueAppIds;
+    } catch (error) {
+        console.error('Error in getAppIds:', error);
+        throw error;
+    }
+}
+
+async function getCategoryAppCounts() {
+    try {
+        console.log('Getting category app counts...');
+        
+        // Use pagination to get all records
+        const data = await fetchAllRecords('app_ranks', 'app_id, category');
+        
+        console.log(`Raw query returned ${data.length} total records`);
+        
+        // Debug: Log all unique categories found
+        const allCategories = [...new Set(data.map(item => item.category))];
+        console.log(`Found ${allCategories.length} unique categories in data:`, allCategories.join(', '));
+        
+        // Process the data to count unique apps per category
+        const categoryApps = {};
         data.forEach(item => {
-            const category = item.category;
-            counts[category] = (counts[category] || 0) + 1;
+            if (!item.category) {
+                console.warn('Found item with no category:', item);
+                return;
+            }
+            
+            if (!categoryApps[item.category]) {
+                categoryApps[item.category] = new Set();
+            }
+            categoryApps[item.category].add(item.app_id);
         });
         
-        return counts;
+        // Convert Sets to counts
+        const result = {};
+        for (const category in categoryApps) {
+            result[category] = categoryApps[category].size;
+            console.log(`Category ${category}: ${result[category]} unique apps`);
+        }
+        
+        return result;
     } catch (error) {
         console.error('Error getting category counts:', error);
         throw error;
@@ -75,5 +121,6 @@ export {
     insertAppMeta,
     insertAppReview,
     getAppIds,
-    getCategoryAppCounts
+    getCategoryAppCounts,
+    fetchAllRecords
 };

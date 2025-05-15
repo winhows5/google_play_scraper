@@ -38,6 +38,7 @@ export async function scrapeAppMetadata() {
         const appIds = await getAppIds();
         console.log(`Found ${appIds.length} apps to scrape metadata for`);
 
+        let processedCount = 0;
         for (const appId of appIds) {
             try {
                 const app = await gplay.app({
@@ -84,7 +85,8 @@ export async function scrapeAppMetadata() {
                 };
 
                 await insertAppMeta(metaData);
-                console.log(`Inserted metadata for ${app.title}`);
+                processedCount++;
+                console.log(`Inserted metadata for ${app.title} (${processedCount}/${appIds.length})`);
 
                 // Add delay between apps
                 await new Promise(resolve => setTimeout(resolve, process.env.SCRAPE_DELAY || 1000));
@@ -94,6 +96,8 @@ export async function scrapeAppMetadata() {
                 continue;
             }
         }
+        
+        console.log(`Completed metadata scraping for ${processedCount} apps`);
     } catch (error) {
         console.error('Error in metadata scraping:', error);
     }

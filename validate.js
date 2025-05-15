@@ -1,6 +1,7 @@
+// validate.js
 import { getCategoryAppCounts } from './db.js';
 
-// List of all categories we expect to have data for
+// Updated list to match exactly the categories in rank.js
 const expectedCategories = [
     'ART_AND_DESIGN',
     'AUTO_AND_VEHICLES',
