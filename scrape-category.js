@@ -159,7 +159,7 @@ class CategoryProgress {
 
 // Main scraping function for a category
 async function scrapeCategoryReviews(category) {
-    const rateLimiter = new RateLimiter(category);
+    const rateLimiter = new SmartRateLimiter(category);
     
     try {
         console.log(`Starting scraper for category: ${category}`);
@@ -333,4 +333,4 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
         });
 }
 
-export { scrapeCategoryReviews, RateLimiter, CategoryProgress };
+export { scrapeCategoryReviews, SmartRateLimiter, CategoryProgress };
