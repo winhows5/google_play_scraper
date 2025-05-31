@@ -4,6 +4,7 @@ import { insertAppReview, fetchAllRecords } from './db.js';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
+import { insertAppReviewBatch } from './db.js'; 
 
 // Configuration
 const MAX_REVIEWS_PER_APP = 50000;
@@ -210,27 +211,28 @@ async function scrapeAppReviews(appId, rateLimiter, progress) {
                 num: BATCH_SIZE
             });
             
-            // Insert reviews in batch
-            const reviewPromises = reviews.data.map(review => {
-                const reviewData = {
-                    app_id: appId,
-                    post_date: review.date,
-                    language: 'en',
-                    country: 'US',
-                    author_name: review.userName,
-                    rating: review.score,
-                    review_content: review.text,
-                    helpful_voting: review.thumbsUp,
-                    app_version: review.version
-                };
-                
-                return insertAppReview(reviewData).catch(err => 
-                    progress.log(`Failed to insert review: ${err.message}`)
-                );
-            });
+            // Prepare batch of reviews
+            const reviewBatch = reviews.data.map(review => ({
+                app_id: appId,
+                post_date: review.date,
+                language: 'en',
+                country: 'US',
+                author_name: review.userName,
+                rating: review.score,
+                review_content: review.text,
+                helpful_voting: review.thumbsUp,
+                app_version: review.version
+            }));
             
-            await Promise.all(reviewPromises);
-            reviewCount += reviews.data.length;
+            // Insert entire batch at once
+            try {
+                await insertAppReviewBatch(reviewBatch);
+                reviewCount += reviews.data.length;
+            } catch (insertError) {
+                await progress.log(`Batch insert failed for ${appId}: ${insertError.message}`);
+                // You might want to retry or handle this differently
+                throw insertError;
+            }
             
             nextToken = reviews.nextPaginationToken;
             if (!nextToken || reviews.data.length === 0) {
@@ -253,7 +255,6 @@ async function scrapeAppReviews(appId, rateLimiter, progress) {
     
     return reviewCount;
 }
-
 // Resource monitoring
 async function monitorResources() {
     const usage = {

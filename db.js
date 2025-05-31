@@ -1,13 +1,47 @@
-// db.js
+// db.js - Optimized version with batch inserts
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 dotenv.config();
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_KEY
+    process.env.SUPABASE_KEY,
+    {
+        auth: {
+            persistSession: false, // Disable for server-side usage
+        }
+    }
 );
 
+// Original single insert (keep for compatibility)
+async function insertAppReview(data) {
+    const { error } = await supabase
+        .from('app_reviews')
+        .insert(data);
+    
+    if (error) throw error;
+}
+
+// NEW: Batch insert for reviews
+async function insertAppReviewBatch(reviews) {
+    // Insert in chunks of 500 to avoid payload size limits
+    const chunkSize = 500;
+    
+    for (let i = 0; i < reviews.length; i += chunkSize) {
+        const chunk = reviews.slice(i, i + chunkSize);
+        
+        const { error } = await supabase
+            .from('app_reviews')
+            .insert(chunk);
+        
+        if (error) {
+            console.error(`Batch insert error at chunk ${i/chunkSize}:`, error);
+            throw error;
+        }
+    }
+}
+
+// Rest of your existing functions...
 async function insertAppRank(data) {
     const { error } = await supabase
         .from('app_ranks')
@@ -24,22 +58,12 @@ async function insertAppMeta(data) {
     if (error) throw error;
 }
 
-async function insertAppReview(data) {
-    const { error } = await supabase
-        .from('app_reviews')
-        .insert(data);
-    
-    if (error) throw error;
-}
-
 async function fetchAllRecords(table, columns) {
-    // Initialize variables
     let allData = [];
     let page = 0;
-    const pageSize = 1000; // Supabase's limit
+    const pageSize = 1000;
     let hasMore = true;
     
-    // Paginate through all records
     while (hasMore) {
         const { data, error } = await supabase
             .from(table)
@@ -50,8 +74,6 @@ async function fetchAllRecords(table, columns) {
         
         allData = [...allData, ...data];
         page++;
-        
-        // Check if we've received fewer than pageSize records, indicating we're done
         hasMore = data.length === pageSize;
     }
     
@@ -61,10 +83,7 @@ async function fetchAllRecords(table, columns) {
 
 async function getAppIds() {
     try {
-        // Use pagination to get all records
         const data = await fetchAllRecords('app_ranks', 'app_id');
-        
-        // Use Set for uniqueness
         const uniqueAppIds = [...new Set(data.map(item => item.app_id))];
         console.log(`getAppIds found ${uniqueAppIds.length} unique app IDs from ${data.length} total records`);
         return uniqueAppIds;
@@ -77,17 +96,13 @@ async function getAppIds() {
 async function getCategoryAppCounts() {
     try {
         console.log('Getting category app counts...');
-        
-        // Use pagination to get all records
         const data = await fetchAllRecords('app_ranks', 'app_id, category');
         
         console.log(`Raw query returned ${data.length} total records`);
         
-        // Debug: Log all unique categories found
         const allCategories = [...new Set(data.map(item => item.category))];
         console.log(`Found ${allCategories.length} unique categories in data:`, allCategories.join(', '));
         
-        // Process the data to count unique apps per category
         const categoryApps = {};
         data.forEach(item => {
             if (!item.category) {
@@ -101,7 +116,6 @@ async function getCategoryAppCounts() {
             categoryApps[item.category].add(item.app_id);
         });
         
-        // Convert Sets to counts
         const result = {};
         for (const category in categoryApps) {
             result[category] = categoryApps[category].size;
@@ -120,6 +134,7 @@ export {
     insertAppRank,
     insertAppMeta,
     insertAppReview,
+    insertAppReviewBatch, // NEW export
     getAppIds,
     getCategoryAppCounts,
     fetchAllRecords
