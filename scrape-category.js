@@ -224,10 +224,20 @@ async function scrapeCategoryReviews(category) {
 }
 
 // Scrape reviews for a single app
+// Optimized scrapeAppReviews function for scrape-category.js
 async function scrapeAppReviews(appId, rateLimiter, progress) {
     let reviewCount = 0;
     let nextToken = undefined;
     let retries = 0;
+    const MAX_REVIEWS_PER_APP = 50000;
+    const BATCH_SIZE = 250; // Increased from 100 - fetch more reviews per request
+    
+    // Collect reviews in memory first, then batch insert
+    let reviewBuffer = [];
+    const BUFFER_SIZE = 1000; // Insert every 1000 reviews
+    
+    console.log(`Starting to scrape reviews for ${appId}`);
+    const startTime = Date.now();
     
     while (reviewCount < MAX_REVIEWS_PER_APP) {
         try {
@@ -239,30 +249,43 @@ async function scrapeAppReviews(appId, rateLimiter, progress) {
                 paginate: true,
                 nextPaginationToken: nextToken,
                 country: 'US',
-                num: BATCH_SIZE
+                num: BATCH_SIZE // Fetch more reviews per request
             });
             
-            // Prepare batch of reviews
-            const reviewBatch = reviews.data.map(review => ({
+            // Prepare reviews for buffer
+            const newReviews = reviews.data.map(review => ({
                 app_id: appId,
                 post_date: review.date,
                 language: 'en',
-                country: 'US',
+                country: 'US', 
                 author_name: review.userName,
                 rating: review.score,
-                review_content: review.text,
-                helpful_voting: review.thumbsUp,
-                app_version: review.version
+                review_content: review.text || '', // Handle null text
+                helpful_voting: review.thumbsUp || 0,
+                app_version: review.version || 'Unknown'
             }));
             
-            // Insert entire batch at once
-            try {
-                await insertAppReviewBatch(reviewBatch);
-                reviewCount += reviews.data.length;
-            } catch (insertError) {
-                await progress.log(`Batch insert failed for ${appId}: ${insertError.message}`);
-                // You might want to retry or handle this differently
-                throw insertError;
+            // Add to buffer
+            reviewBuffer.push(...newReviews);
+            reviewCount += newReviews.length;
+            
+            // Insert when buffer is full or no more reviews
+            if (reviewBuffer.length >= BUFFER_SIZE || !reviews.nextPaginationToken) {
+                try {
+                    await insertAppReviewBatch(reviewBuffer);
+                    reviewBuffer = []; // Clear buffer after successful insert
+                } catch (insertError) {
+                    await progress.log(`Batch insert failed for ${appId}: ${insertError.message}`);
+                    // Don't throw - continue collecting reviews
+                    reviewBuffer = []; // Clear buffer to avoid memory issues
+                }
+            }
+            
+            // Log progress every 5000 reviews
+            if (reviewCount % 5000 === 0) {
+                const elapsed = (Date.now() - startTime) / 1000 / 60; // minutes
+                const rate = reviewCount / elapsed;
+                await progress.log(`${appId}: ${reviewCount} reviews collected (${rate.toFixed(0)} reviews/min)`);
             }
             
             nextToken = reviews.nextPaginationToken;
@@ -276,13 +299,29 @@ async function scrapeAppReviews(appId, rateLimiter, progress) {
             retries++;
             
             if (retries >= MAX_RETRIES) {
+                // Insert any remaining reviews before failing
+                if (reviewBuffer.length > 0) {
+                    try {
+                        await insertAppReviewBatch(reviewBuffer);
+                    } catch (e) {
+                        console.error('Failed to insert remaining reviews:', e);
+                    }
+                }
                 throw error;
             }
             
             await progress.log(`Retry ${retries}/${MAX_RETRIES} for ${appId}: ${error.message}`);
-            await new Promise(resolve => setTimeout(resolve, 2000 * retries)); // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, 2000 * retries));
         }
     }
+    
+    // Insert any remaining reviews
+    if (reviewBuffer.length > 0) {
+        await insertAppReviewBatch(reviewBuffer);
+    }
+    
+    const totalTime = (Date.now() - startTime) / 1000 / 60; // minutes
+    console.log(`Completed ${appId}: ${reviewCount} reviews in ${totalTime.toFixed(1)} minutes`);
     
     return reviewCount;
 }
