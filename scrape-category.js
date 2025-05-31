@@ -13,8 +13,8 @@ const RATE_LIMIT_DELAY = 5000; // 5s when rate limited
 const MAX_RETRIES = 5;
 const BATCH_SIZE = 100; // Reviews per request
 
-// Rate limiting tracking
-class RateLimiter {
+// Enhanced RateLimiter class for scrape-category.js
+class SmartRateLimiter {
     constructor(category) {
         this.category = category;
         this.successCount = 0;
@@ -22,21 +22,36 @@ class RateLimiter {
         this.rateLimitHits = 0;
         this.lastRequestTime = Date.now();
         this.avgDelay = BASE_DELAY;
+        this.consecutiveErrors = 0;
+        this.requestsInLastMinute = [];
     }
 
     async waitForNextRequest() {
         const now = Date.now();
-        const timeSinceLastRequest = now - this.lastRequestTime;
         
-        // Dynamic delay based on recent performance
+        // Track requests per minute
+        this.requestsInLastMinute = this.requestsInLastMinute.filter(
+            time => now - time < 60000
+        );
+        this.requestsInLastMinute.push(now);
+        
+        // Progressive delay based on requests per minute
         let delay = this.avgDelay;
         
-        // If we've hit rate limits recently, increase delay
-        if (this.rateLimitHits > 0) {
-            delay = Math.min(delay * 1.5, 10000); // Max 10s delay
+        if (this.requestsInLastMinute.length > 30) {
+            // More than 30 requests/minute, slow down
+            delay = delay * 2;
+        } else if (this.requestsInLastMinute.length < 10 && this.consecutiveErrors === 0) {
+            // Less than 10 requests/minute and no errors, speed up
+            delay = Math.max(1000, delay * 0.8);
         }
         
-        // Ensure minimum time between requests
+        // Add exponential backoff for consecutive errors
+        if (this.consecutiveErrors > 0) {
+            delay = Math.min(30000, delay * Math.pow(2, this.consecutiveErrors));
+        }
+        
+        const timeSinceLastRequest = now - this.lastRequestTime;
         if (timeSinceLastRequest < delay) {
             await new Promise(resolve => setTimeout(resolve, delay - timeSinceLastRequest));
         }
@@ -46,22 +61,37 @@ class RateLimiter {
 
     recordSuccess() {
         this.successCount++;
+        this.consecutiveErrors = 0;
         this.rateLimitHits = Math.max(0, this.rateLimitHits - 1);
-        // Gradually reduce delay on success
-        this.avgDelay = Math.max(BASE_DELAY, this.avgDelay * 0.95);
+        this.avgDelay = Math.max(1000, this.avgDelay * 0.95);
     }
 
     recordError(error) {
         this.errorCount++;
+        this.consecutiveErrors++;
         
-        // Check if it's a rate limit error
-        if (error.message?.includes('429') || error.message?.includes('rate')) {
+        // Check error type
+        if (error.message?.includes('502') || error.message?.includes('gateway')) {
+            // Server errors - back off significantly
+            this.avgDelay = Math.min(30000, this.avgDelay * 3);
+            return 'gateway';
+        } else if (error.message?.includes('429') || error.message?.includes('rate')) {
+            // Rate limit - moderate backoff
             this.rateLimitHits++;
-            this.avgDelay = Math.min(this.avgDelay * 2, 30000); // Double delay, max 30s
-            return true; // Is rate limit error
+            this.avgDelay = Math.min(20000, this.avgDelay * 2);
+            return 'rate_limit';
+        } else if (error.message?.includes('timeout')) {
+            // Timeout - slight backoff
+            this.avgDelay = Math.min(15000, this.avgDelay * 1.5);
+            return 'timeout';
         }
         
-        return false;
+        return 'unknown';
+    }
+
+    shouldAbort() {
+        // Abort if too many consecutive errors
+        return this.consecutiveErrors > 10;
     }
 
     getStats() {
@@ -70,10 +100,11 @@ class RateLimiter {
             errorCount: this.errorCount,
             rateLimitHits: this.rateLimitHits,
             currentDelay: Math.round(this.avgDelay),
+            requestsPerMinute: this.requestsInLastMinute.length,
+            consecutiveErrors: this.consecutiveErrors
         };
     }
 }
-
 // Progress tracking
 class CategoryProgress {
     constructor(category, totalApps) {
