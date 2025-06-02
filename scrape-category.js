@@ -1,19 +1,29 @@
 // scrape-category.js
 import gplay from 'google-play-scraper';
-import { insertAppReview, fetchAllRecords } from './db.js';
+import { insertAppReview, insertAppReviewBatch, fetchAllRecords } from './db.js';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import { insertAppReviewBatch } from './db.js'; 
 
 // Configuration
 const MAX_REVIEWS_PER_APP = 50000;
 const BASE_DELAY = parseInt(process.env.SCRAPE_DELAY || 2000); // 2s base delay
 const RATE_LIMIT_DELAY = 5000; // 5s when rate limited
 const MAX_RETRIES = 5;
-const BATCH_SIZE = 100; // Reviews per request
+const BATCH_SIZE = 250; // Reviews per request
+const MAX_MEMORY_USAGE = 200 * 1024 * 1024; // 200MB limit
 
-// Enhanced RateLimiter class for scrape-category.js
+// Helper function to clean text
+function cleanText(text) {
+    if (!text) return '';
+    // Remove null characters and other problematic Unicode
+    return text
+        .replace(/\u0000/g, '') // Remove null chars
+        .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
+        .trim();
+}
+
+// Smart Rate limiting tracking
 class SmartRateLimiter {
     constructor(category) {
         this.category = category;
@@ -105,6 +115,7 @@ class SmartRateLimiter {
         };
     }
 }
+
 // Progress tracking
 class CategoryProgress {
     constructor(category, totalApps) {
@@ -207,10 +218,14 @@ async function scrapeCategoryReviews(category) {
             } catch (error) {
                 await progress.log(`Error scraping ${appId}: ${error.message}`);
                 
-                const isRateLimit = rateLimiter.recordError(error);
-                if (isRateLimit) {
-                    await progress.log(`Rate limited! Waiting ${RATE_LIMIT_DELAY}ms before continuing...`);
+                const errorType = rateLimiter.recordError(error);
+                if (errorType === 'gateway' || errorType === 'rate_limit') {
+                    await progress.log(`${errorType} error! Waiting ${RATE_LIMIT_DELAY}ms before continuing...`);
                     await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
+                }
+                
+                if (rateLimiter.shouldAbort()) {
+                    throw new Error(`Too many consecutive errors, aborting category ${category}`);
                 }
             }
         }
@@ -223,24 +238,45 @@ async function scrapeCategoryReviews(category) {
     }
 }
 
-// Scrape reviews for a single app
-// Optimized scrapeAppReviews function for scrape-category.js
+// Scrape reviews for a single app with all fixes
 async function scrapeAppReviews(appId, rateLimiter, progress) {
     let reviewCount = 0;
     let nextToken = undefined;
     let retries = 0;
-    const MAX_REVIEWS_PER_APP = 50000;
-    const BATCH_SIZE = 250; // Increased from 100 - fetch more reviews per request
     
-    // Collect reviews in memory first, then batch insert
+    // Reduced buffer size to prevent memory issues
     let reviewBuffer = [];
-    const BUFFER_SIZE = 1000; // Insert every 1000 reviews
+    const BUFFER_SIZE = 500; // Reduced from 1000
     
     console.log(`Starting to scrape reviews for ${appId}`);
     const startTime = Date.now();
     
     while (reviewCount < MAX_REVIEWS_PER_APP) {
         try {
+            // Check memory usage periodically
+            if (reviewCount % 5000 === 0 && reviewCount > 0) {
+                const usage = process.memoryUsage();
+                const usedMB = Math.round(usage.heapUsed / 1024 / 1024);
+                
+                if (usage.heapUsed > MAX_MEMORY_USAGE) {
+                    console.log(`High memory usage detected: ${usedMB}MB for ${appId}`);
+                    // Force insert current buffer to free memory
+                    if (reviewBuffer.length > 0) {
+                        await insertAppReviewBatch(reviewBuffer);
+                        reviewBuffer = [];
+                    }
+                    // Try to trigger garbage collection
+                    if (global.gc) {
+                        global.gc();
+                    }
+                }
+                
+                // Log progress
+                const elapsed = (Date.now() - startTime) / 1000 / 60; // minutes
+                const rate = reviewCount / elapsed;
+                await progress.log(`${appId}: ${reviewCount} reviews, ${usedMB}MB memory (${rate.toFixed(0)} reviews/min)`);
+            }
+            
             await rateLimiter.waitForNextRequest();
             
             const reviews = await gplay.reviews({
@@ -249,21 +285,30 @@ async function scrapeAppReviews(appId, rateLimiter, progress) {
                 paginate: true,
                 nextPaginationToken: nextToken,
                 country: 'US',
-                num: BATCH_SIZE // Fetch more reviews per request
+                num: BATCH_SIZE
             });
             
-            // Prepare reviews for buffer
-            const newReviews = reviews.data.map(review => ({
-                app_id: appId,
-                post_date: review.date,
-                language: 'en',
-                country: 'US', 
-                author_name: review.userName,
-                rating: review.score,
-                review_content: review.text || '', // Handle null text
-                helpful_voting: review.thumbsUp || 0,
-                app_version: review.version || 'Unknown'
-            }));
+            // Clean and validate reviews
+            const newReviews = reviews.data
+                .map(review => ({
+                    app_id: appId,
+                    post_date: review.date,
+                    language: 'en',
+                    country: 'US',
+                    author_name: cleanText(review.userName),
+                    rating: Math.max(1, Math.min(5, review.score || 1)), // Ensure 1-5 range
+                    review_content: cleanText(review.text),
+                    helpful_voting: review.thumbsUp || 0,
+                    app_version: cleanText(review.version) || 'Unknown'
+                }))
+                .filter(review => {
+                    // Additional validation
+                    if (review.rating < 1 || review.rating > 5) {
+                        console.log(`Skipping review with invalid rating ${review.rating}`);
+                        return false;
+                    }
+                    return true;
+                });
             
             // Add to buffer
             reviewBuffer.push(...newReviews);
@@ -273,19 +318,24 @@ async function scrapeAppReviews(appId, rateLimiter, progress) {
             if (reviewBuffer.length >= BUFFER_SIZE || !reviews.nextPaginationToken) {
                 try {
                     await insertAppReviewBatch(reviewBuffer);
-                    reviewBuffer = []; // Clear buffer after successful insert
+                    reviewBuffer = []; // Clear immediately after insert
                 } catch (insertError) {
                     await progress.log(`Batch insert failed for ${appId}: ${insertError.message}`);
-                    // Don't throw - continue collecting reviews
-                    reviewBuffer = []; // Clear buffer to avoid memory issues
+                    // Try smaller chunks on failure
+                    const smallChunks = [];
+                    for (let i = 0; i < reviewBuffer.length; i += 50) {
+                        smallChunks.push(reviewBuffer.slice(i, i + 50));
+                    }
+                    
+                    for (const chunk of smallChunks) {
+                        try {
+                            await insertAppReviewBatch(chunk);
+                        } catch (e) {
+                            console.error(`Failed to insert chunk: ${e.message}`);
+                        }
+                    }
+                    reviewBuffer = []; // Clear buffer regardless
                 }
-            }
-            
-            // Log progress every 5000 reviews
-            if (reviewCount % 5000 === 0) {
-                const elapsed = (Date.now() - startTime) / 1000 / 60; // minutes
-                const rate = reviewCount / elapsed;
-                await progress.log(`${appId}: ${reviewCount} reviews collected (${rate.toFixed(0)} reviews/min)`);
             }
             
             nextToken = reviews.nextPaginationToken;
@@ -321,10 +371,12 @@ async function scrapeAppReviews(appId, rateLimiter, progress) {
     }
     
     const totalTime = (Date.now() - startTime) / 1000 / 60; // minutes
-    console.log(`Completed ${appId}: ${reviewCount} reviews in ${totalTime.toFixed(1)} minutes`);
+    const finalMemory = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+    console.log(`Completed ${appId}: ${reviewCount} reviews in ${totalTime.toFixed(1)} minutes (Final memory: ${finalMemory}MB)`);
     
     return reviewCount;
 }
+
 // Resource monitoring
 async function monitorResources() {
     const usage = {
@@ -372,4 +424,4 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
         });
 }
 
-export { scrapeCategoryReviews, SmartRateLimiter, CategoryProgress };
+export { scrapeCategoryReviews, SmartRateLimiter as RateLimiter, CategoryProgress };

@@ -1,4 +1,4 @@
-// db.js - Optimized version with batch inserts
+// db.js
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 dotenv.config();
@@ -13,88 +13,6 @@ const supabase = createClient(
     }
 );
 
-// Original single insert (keep for compatibility)
-async function insertAppReview(data) {
-    const { error } = await supabase
-        .from('app_reviews')
-        .insert(data);
-    
-    if (error) throw error;
-}
-
-// NEW: Batch insert for reviews
-async function insertAppReviewBatch(reviews) {
-    // Smaller chunks to avoid timeouts
-    const chunkSize = 50; // Reduced from 100-500
-    const maxRetries = 3;
-    const retryDelay = 1000;
-    
-    console.log(`Starting batch insert of ${reviews.length} reviews in chunks of ${chunkSize}`);
-    const startTime = Date.now();
-    let insertedCount = 0;
-    
-    for (let i = 0; i < reviews.length; i += chunkSize) {
-        const chunk = reviews.slice(i, i + chunkSize);
-        let retries = 0;
-        let success = false;
-        
-        while (retries < maxRetries && !success) {
-            try {
-                const { data, error } = await supabase
-                    .from('app_reviews')
-                    .insert(chunk)
-                    .select(); // Add select to ensure insert completed
-                
-                if (error) {
-                    // Check if it's a duplicate key error (reviews might already exist)
-                    if (error.code === '23505') {
-                        console.log(`Skipping ${chunk.length} duplicate reviews`);
-                        success = true;
-                        break;
-                    }
-                    throw error;
-                }
-                
-                insertedCount += chunk.length;
-                success = true;
-                
-                // Log progress every 1000 reviews
-                if (insertedCount % 1000 === 0) {
-                    const elapsed = (Date.now() - startTime) / 1000;
-                    const rate = insertedCount / elapsed;
-                    console.log(`Inserted ${insertedCount}/${reviews.length} reviews (${rate.toFixed(0)} reviews/sec)`);
-                }
-                
-            } catch (err) {
-                retries++;
-                
-                if (err.message?.includes('fetch failed') || err.message?.includes('timeout')) {
-                    console.error(`Network error on chunk ${i/chunkSize}, retry ${retries}/${maxRetries}`);
-                    
-                    // Exponential backoff for network errors
-                    await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, retries)));
-                } else {
-                    console.error(`Batch insert error:`, err);
-                    throw err; // Rethrow non-network errors
-                }
-                
-                if (retries >= maxRetries) {
-                    throw new Error(`Failed to insert chunk after ${maxRetries} retries: ${err.message}`);
-                }
-            }
-        }
-        
-        // Minimal delay between chunks to avoid overwhelming the connection
-        if (i + chunkSize < reviews.length) {
-            await new Promise(resolve => setTimeout(resolve, 10));
-        }
-    }
-    
-    const totalTime = (Date.now() - startTime) / 1000;
-    console.log(`Completed batch insert: ${insertedCount} reviews in ${totalTime.toFixed(1)}s`);
-}
-
-// Rest of your existing functions...
 async function insertAppRank(data) {
     const { error } = await supabase
         .from('app_ranks')
@@ -111,12 +29,117 @@ async function insertAppMeta(data) {
     if (error) throw error;
 }
 
+// Single review insert (keeping for compatibility)
+async function insertAppReview(data) {
+    const { error } = await supabase
+        .from('app_reviews')
+        .insert(data);
+    
+    if (error) throw error;
+}
+
+// Improved batch insert with all fixes
+async function insertAppReviewBatch(reviews) {
+    // Smaller chunks to avoid timeouts and memory issues
+    const chunkSize = 50; // Reduced from larger sizes
+    const maxRetries = 3;
+    const retryDelay = 1000;
+    
+    console.log(`Starting batch insert of ${reviews.length} reviews`);
+    const startTime = Date.now();
+    let insertedCount = 0;
+    let skippedCount = 0;
+    
+    for (let i = 0; i < reviews.length; i += chunkSize) {
+        const chunk = reviews.slice(i, i + chunkSize);
+        let retries = 0;
+        let success = false;
+        
+        while (retries < maxRetries && !success) {
+            try {
+                const { data, error } = await supabase
+                    .from('app_reviews')
+                    .insert(chunk)
+                    .select(); // Ensures insert completed
+                
+                if (error) {
+                    // Handle specific error codes
+                    if (error.code === '23505') {
+                        // Duplicate key - these reviews already exist
+                        console.log(`Skipping ${chunk.length} duplicate reviews`);
+                        skippedCount += chunk.length;
+                        success = true;
+                        break;
+                    } else if (error.code === '23514') {
+                        // Constraint violation - filter out bad reviews
+                        console.log(`Constraint violation, filtering chunk...`);
+                        const validChunk = chunk.filter(r => r.rating >= 1 && r.rating <= 5);
+                        if (validChunk.length > 0) {
+                            const { error: retryError } = await supabase
+                                .from('app_reviews')
+                                .insert(validChunk);
+                            if (!retryError) {
+                                insertedCount += validChunk.length;
+                                skippedCount += chunk.length - validChunk.length;
+                                success = true;
+                                break;
+                            }
+                        }
+                    }
+                    throw error;
+                }
+                
+                insertedCount += chunk.length;
+                success = true;
+                
+                // Log progress for large batches
+                if (insertedCount % 1000 === 0) {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const rate = insertedCount / elapsed;
+                    console.log(`Progress: ${insertedCount}/${reviews.length} reviews (${rate.toFixed(0)} reviews/sec)`);
+                }
+                
+            } catch (err) {
+                retries++;
+                
+                const isNetworkError = err.message?.includes('fetch failed') || 
+                                     err.message?.includes('timeout') ||
+                                     err.message?.includes('ECONNRESET');
+                
+                if (isNetworkError) {
+                    console.error(`Network error on chunk ${Math.floor(i/chunkSize)}, retry ${retries}/${maxRetries}`);
+                    // Exponential backoff for network errors
+                    await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, retries)));
+                } else {
+                    console.error(`Database error on chunk ${Math.floor(i/chunkSize)}:`, err.message);
+                    // For non-network errors, fail faster
+                    if (retries >= maxRetries) {
+                        console.error(`Skipping chunk after ${maxRetries} retries`);
+                        skippedCount += chunk.length;
+                        success = true; // Move on to next chunk
+                    }
+                }
+            }
+        }
+        
+        // Small delay between chunks to avoid overwhelming the connection
+        if (i + chunkSize < reviews.length && success) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+    }
+    
+    const totalTime = (Date.now() - startTime) / 1000;
+    console.log(`Batch insert completed: ${insertedCount} inserted, ${skippedCount} skipped in ${totalTime.toFixed(1)}s`);
+}
+
 async function fetchAllRecords(table, columns) {
+    // Initialize variables
     let allData = [];
     let page = 0;
-    const pageSize = 1000;
+    const pageSize = 1000; // Supabase's limit
     let hasMore = true;
     
+    // Paginate through all records
     while (hasMore) {
         const { data, error } = await supabase
             .from(table)
@@ -127,6 +150,8 @@ async function fetchAllRecords(table, columns) {
         
         allData = [...allData, ...data];
         page++;
+        
+        // Check if we've received fewer than pageSize records, indicating we're done
         hasMore = data.length === pageSize;
     }
     
@@ -136,7 +161,10 @@ async function fetchAllRecords(table, columns) {
 
 async function getAppIds() {
     try {
+        // Use pagination to get all records
         const data = await fetchAllRecords('app_ranks', 'app_id');
+        
+        // Use Set for uniqueness
         const uniqueAppIds = [...new Set(data.map(item => item.app_id))];
         console.log(`getAppIds found ${uniqueAppIds.length} unique app IDs from ${data.length} total records`);
         return uniqueAppIds;
@@ -149,13 +177,17 @@ async function getAppIds() {
 async function getCategoryAppCounts() {
     try {
         console.log('Getting category app counts...');
+        
+        // Use pagination to get all records
         const data = await fetchAllRecords('app_ranks', 'app_id, category');
         
         console.log(`Raw query returned ${data.length} total records`);
         
+        // Debug: Log all unique categories found
         const allCategories = [...new Set(data.map(item => item.category))];
         console.log(`Found ${allCategories.length} unique categories in data:`, allCategories.join(', '));
         
+        // Process the data to count unique apps per category
         const categoryApps = {};
         data.forEach(item => {
             if (!item.category) {
@@ -169,6 +201,7 @@ async function getCategoryAppCounts() {
             categoryApps[item.category].add(item.app_id);
         });
         
+        // Convert Sets to counts
         const result = {};
         for (const category in categoryApps) {
             result[category] = categoryApps[category].size;
@@ -187,7 +220,7 @@ export {
     insertAppRank,
     insertAppMeta,
     insertAppReview,
-    insertAppReviewBatch, // NEW export
+    insertAppReviewBatch,
     getAppIds,
     getCategoryAppCounts,
     fetchAllRecords
