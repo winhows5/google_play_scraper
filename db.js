@@ -215,6 +215,80 @@ async function getCategoryAppCounts() {
     }
 }
 
+async function getScrapedAppIds() {
+    try {
+        console.log('Fetching list of apps with existing reviews...');
+        
+        // Use raw SQL for efficiency - gets distinct app_ids that have reviews
+        const { data, error } = await supabase
+            .rpc('get_distinct_app_ids');
+        
+        if (error) {
+            // Fallback: If RPC doesn't exist, use a different approach
+            console.log('RPC not found, using fallback method...');
+            
+            // Get a sample to check if any reviews exist
+            const { data: sample, error: sampleError } = await supabase
+                .from('app_reviews')
+                .select('app_id')
+                .limit(1);
+            
+            if (sampleError || !sample || sample.length === 0) {
+                console.log('No reviews found in database');
+                return [];
+            }
+            
+            // If reviews exist, get distinct app_ids page by page
+            const distinctAppIds = new Set();
+            let lastAppId = null;
+            const pageSize = 10000;
+            
+            while (true) {
+                let query = supabase
+                    .from('app_reviews')
+                    .select('app_id')
+                    .order('app_id')
+                    .limit(pageSize);
+                
+                if (lastAppId) {
+                    query = query.gt('app_id', lastAppId);
+                }
+                
+                const { data: batch, error: batchError } = await query;
+                
+                if (batchError) {
+                    console.error('Error fetching app_ids:', batchError);
+                    break;
+                }
+                
+                if (!batch || batch.length === 0) {
+                    break;
+                }
+                
+                batch.forEach(row => distinctAppIds.add(row.app_id));
+                lastAppId = batch[batch.length - 1].app_id;
+                
+                console.log(`Processed ${distinctAppIds.size} unique apps so far...`);
+                
+                if (batch.length < pageSize) {
+                    break;
+                }
+            }
+            
+            const result = Array.from(distinctAppIds);
+            console.log(`Found ${result.length} apps with existing reviews`);
+            return result;
+        }
+        
+        console.log(`Found ${data.length} apps with existing reviews`);
+        return data.map(row => row.app_id);
+        
+    } catch (error) {
+        console.error('Error in getScrapedAppIds:', error);
+        return [];
+    }
+}
+
 export {
     supabase,
     insertAppRank,
@@ -223,5 +297,6 @@ export {
     insertAppReviewBatch,
     getAppIds,
     getCategoryAppCounts,
-    fetchAllRecords
+    fetchAllRecords,
+    getScrapedAppIds
 };
