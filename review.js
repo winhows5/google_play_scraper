@@ -134,6 +134,7 @@ async function scrape_review(partition_dict, rank_records, dir) {
                     }
 
                     page_count += 1;
+                    console.log("current category: ", partition_dict.category);
                     console.log("next page: ", v.nextPaginationToken);
                     console.log("current len: ", result.length, "total reviews: ", review_count, " page: ", page_count);
 
