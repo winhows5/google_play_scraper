@@ -51,7 +51,16 @@ function get_date() {
 /* rank list is obtained according to rank.js
 */  
 async function scrape_review(partition_dict, rank_records, dir) {
-
+    // Track the max retry app_num in current category.
+    var max_retry_app_num = -1;
+    var cat_num = partition_dict.num;
+    if (retry_records[cat_num] !== undefined) {
+        for (const app_id in retry_records[cat_num]) {
+            if (retry_records[cat_num][app_id]["app_num"] > max_retry_app_num) {
+                max_retry_app_num = retry_records[cat_num][app_id]["app_num"];
+            }
+        }
+    }
     for (let i = 0; i < rank_records.length; i++) {
         var page_count = 0;
         var review_count = 0;
@@ -59,11 +68,13 @@ async function scrape_review(partition_dict, rank_records, dir) {
 
         let app_id = rank_records[i]["app_id"];
         let app_name = rank_records[i]["app_name"];
+        let app_num = i;
         let nextPag = null;
         let hasAll = false;
         // Search retry records.
-        if (retry_records[cat_num] &&
-            retry_records[cat_num][app_id] !== undefined) {
+        if (retry_records[cat_num] !== undefined) {
+            if (retry_records[cat_num][app_id] !== undefined) {
+                // Setup retry.
                 console.log("Found retry record: %s", app_id);
                 review_count = retry_records[cat_num][app_id]["count"];
                 nextPag = retry_records[cat_num][app_id]["nextPage"];
@@ -71,7 +82,14 @@ async function scrape_review(partition_dict, rank_records, dir) {
                     console.log("app %s already meet demands: %d", app_id, review_count);
                     hasAll = true;
                 }
+            } else {
+                if (app_num < max_app_num) {
+                    console.log("app %s already meet demands without retry.", app_id.);
+                    hasAll = true;
+                }
             }
+
+        }
         while (!hasAll) {
             console.log("current page: ", nextPag);
             await gplay.reviews({
@@ -143,7 +161,7 @@ async function scrape_review(partition_dict, rank_records, dir) {
                     var retry_list = [];
                     retry_list.push({
                         "cat_num": partition_dict.num,
-                        "app_num": i,
+                        "app_num": app_num,
                         "app_id": app_id,
                         "request_date": (new Date()).toISOString().slice(0, 10),
                         "count": review_count,
@@ -199,11 +217,11 @@ async function read_retry_csv(partition_dict) {
             separator: '\u001F'
         }))
         .on('data', (data) => {
-            cat_num = data["cat_num"];
+            var cat_num = data["cat_num"];
             if (!(cat_num in retry_records)) {
                 retry_records[cat_num] = {};
             }
-            app_id = data["app_id"];
+            var app_id = data["app_id"];
             if (!(app_id in retry_records)) {
                 retry_records[cat_num][app_id] = {};
             }
@@ -218,18 +236,11 @@ async function read_retry_csv(partition_dict) {
             retry_records[cat_num][app_id]["nextPage"] = data["info"];
         })
         .on('end', () => {
-            console.log("Load csv: ", partition_dict.category, rank_records.length);
+            console.log("Load retry records: ", retry_records[partition_dict.num]);
         });
 }
 
 async function main(cat_start, cat_end) {
-
-    read_retry_csv(partition_dict);
-    let promise = new Promise((resolve, reject) => {
-        setTimeout(() => resolve("done!"), 1000)
-    });
-    await promise;
-    console.log("Load retry entries: ", retry_records);
 
     for (let i = cat_start; i < cat_end; i++) {
         let partition_dict = {
@@ -244,7 +255,7 @@ async function main(cat_start, cat_end) {
         }
 
         read_csv(partition_dict);
-
+        read_retry_csv(partition_dict);
         let promise = new Promise((resolve, reject) => {
             setTimeout(() => resolve("done!"), 3000)
         });
