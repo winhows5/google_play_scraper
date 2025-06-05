@@ -26,7 +26,7 @@ function get_info(app_info, partition_dict) {
         "app_name": "\"" + app_info.title + "\"",
         "country": partition_dict.country,
         "company_name": app_info.developer,
-        "app_description": app_info.description,
+        "app_description": app_info.description.replace(/\n/g, "\\n"),
         "is_free": app_info.free,
         "price": app_info.price,
         "currency": app_info.currency,
@@ -93,7 +93,7 @@ async function scrape_rank (partition_dict) {
 
 async function main() {
 
-    for (let i = 1; i < 54; i++) {
+    for (let i = 0; i < 54; i++) {
         var partition_dict = {
             "num": i,
             "category": category_list[i],

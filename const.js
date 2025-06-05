@@ -90,18 +90,13 @@ var review_template = {
     "language": "us",
     "post_date": "2013-11-10T18:31:42.174Z",
     "review_id": "",
-    "user_name": "",
-    "user_image": "",
-    "score": 0,
+    "author_name": "",
+    "rating": 0,
     "review_title": "",
-    "review_text": "A JSON object",
-    "is_replied": 0,
-    "reply_date": "2013-11-10T18:31:42.174Z",
-    "reply_text": "A JSON object",
+    "review_content": "A JSON object",
     "app_version": "",
-    "thumbsup": 0,
-    "url": "",
-    "criterias": "[]",
+    "helpful_voting": 0,
+    "url": ""
 }
 
 var review_stat_template = {

@@ -3,201 +3,168 @@ Get the reviews from a app list. This list is obtained by rank.js.
 */
 
 
-const gplay = require('google-play-scraper');
-const fs = require('fs');
-const csv = require('csv-parser');
-const {category_list, review_keys, review_stat_keys, retry_keys} = require('./const');
+import gplay from 'google-play-scraper';
+import fs from 'fs';
+import csv from 'csv-parser';
+import { category_list, review_keys, review_stat_keys, retry_keys, DELIMITER } from './const.js';
 
 
-var DELIMITER = String.fromCharCode(0x1F);
-var REVIEW_DATE = new Date("2021-12-01T00:00:00.000Z");   // earliest date
-var REVIEW_LIMIT = 3000000;
+var REVIEW_LIMIT = 50000;
 
 // change here for distributed servers
 var REVIEW_COUNTRY = "US";
 var REVIEW_LANG = "en_US";
 var PART_START = 0;      // partition for category range
-var PART_END = 32;
+var PART_END = 1;
 
 var rank_records;
 
+
+function get_date() {
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+    var yyyy = today.getFullYear();
+
+    today = yyyy + mm + dd;
+    return today;
+}
+
+
 /* rank list is obtained according to rank.js
-*/
+*/  
 async function scrape_review(partition_dict, rank_records, dir) {
 
     // Additional codes for easy retry
     let tmp = 0;
-    if (partition_dict.num === PART_START) {
-        tmp = 0;
-    }
 
-    let rank_lang = "en";
-    for (let i = tmp; i < rank_records.length; i++) { 
+    for (let i = tmp; i < rank_records.length; i++) {
         var page_count = 0;
         var review_count = 0;
-        csv_app_id = partition_dict.category + "_" + partition_dict.country + "_" + rank_lang + "_appid";
-        csv_app_name = partition_dict.category + "_" + partition_dict.country + "_" + rank_lang + "_appname";
-        console.log("Current app: ", rank_records[i][csv_app_id]);
+        console.log("Current app: ", rank_records[i]["app_id"]);
 
-        let date_latest = null;
-        let date_earliest = (new Date()).toISOString();
-
-        let app_id = rank_records[i][csv_app_id];
-        let app_name = rank_records[i][csv_app_name];
+        let app_id = rank_records[i]["app_id"];
+        let app_name = rank_records[i]["app_name"];
         let nextPag = null;
         let hasAll = false;
         while (!hasAll) {
             console.log("current page: ", nextPag);
-            await gplay.reviews({appId: app_id, 
-                lang: partition_dict.lang,
-                country: partition_dict.country, 
-                sort: gplay.sort.NEWEST,
+            await gplay.reviews({
+                appId: app_id,
+                // lang: partition_dict.lang,
+                country: partition_dict.country,
+                sort: gplay.sort.HELPFULNESS,
                 paginate: true,
                 nextPaginationToken: nextPag,
-                throttle: 1})
-            .then( v => {
-                v2 = v.data;
-                if (v2.length === 0 && page_count !== 0) {
-                    throw new Error("Length Exception");
-                }
-                var result = [];
-                nextPag = v.nextPaginationToken;
-                for (let j = 0; j < v2.length; j++) {
+                throttle: 1
+            })
+                .then(v => {
+                    let v2 = v.data;
+                    if (v2.length === 0 && page_count !== 0) {
+                        throw new Error("Length Exception");
+                    }
+                    var result = [];
+                    nextPag = v.nextPaginationToken;
+                    for (let j = 0; j < v2.length; j++) {
 
-                    if (REVIEW_DATE > new Date(v2[j].date)) {   // run till this date
-                        nextPag = null;
-                        break;
-                    }
-                    if (REVIEW_LIMIT <= review_count) {   // or, run till this number
-                        nextPag = null;
-                        break;
+                        if (REVIEW_LIMIT <= review_count) {   // or, run till this number
+                            nextPag = null;
+                            break;
+                        }
+                        let dict = {
+                            "app_id": app_id,
+                            "app_name": app_name,
+                            "country": partition_dict.country,
+                            "language": partition_dict.lang,
+                            "post_date": v2[j].date,
+                            "review_id": v2[j].id,
+                            "author_name": v2[j].userName,
+                            "rating": v2[j].score,
+                            "review_title": v2[j].title,
+                            "review_content": v2[j].text,
+                            "app_version": v2[j].version,
+                            "helpful_voting": v2[j].thumbsUp,
+                            "url": v2[j].url
+                        }
+                        result.push(dict);
+                        review_count += 1;
                     }
 
-                    let reviewDict = {
-                        "text": v2[j].text,
+                    page_count += 1;
+                    console.log("next page: ", v.nextPaginationToken);
+                    console.log("current len: ", result.length, "total reviews: ", review_count, " page: ", page_count);
+
+                    if (result.length > 0) {
+                        const app_review_csv = result.map(item => (
+                            review_keys.map(key => {
+                                return item[key];
+                            }).join(DELIMITER)
+                        ));
+
+                        const app_review = app_review_csv.join('\n') + '\n';
+                        fs.appendFileSync(dir + partition_dict.category + "_review.csv", app_review, console.log);
                     }
-                    let replayDict = {
-                        "text": v2[j].replyText,
+                    console.log("review %d of source: %d %s\n", v2.length, i, app_id);
+
+                    if (nextPag === null) {
+                        hasAll = true;
+                        console.log("Has ALL reviews! STOP.");
                     }
-                    let dict = {
+
+                })
+                .catch((e) => {
+                    console.error("Error from %s", app_id);
+                    console.error(e);
+                    var retry_list = [];
+                    retry_list.push({
+                        "cat_num": partition_dict.num,
+                        "app_num": i,
                         "app_id": app_id,
-                        "app_name": app_name,
-                        "country": partition_dict.country,
-                        "language": partition_dict.lang,
-                        "post_date": v2[j].date,
-                        "review_id": v2[j].id,
-                        "user_name": v2[j].userName,
-                        "user_image": v2[j].userImage,
-                        "score": v2[j].score,
-                        "review_title": v2[j].title,
-                        "review_text": JSON.stringify(reviewDict),
-                        "is_replied": v2[j].replyDate === null ? 0 : 1,
-                        "reply_date": v2[j].replyDate,
-                        "reply_text": JSON.stringify(replayDict),
-                        "app_version": v2[j].version,
-                        "thumbsup": v2[j].thumbsUp,
-                        "url": v2[j].url,
-                        "criterias": JSON.stringify(v2[j].criterias),
-                    }
-                    result.push(dict);  
-                    review_count += 1;
-
-                    if (date_latest === null) {
-                        date_latest = v2[j].date;
-                    }
-                    if (new Date(date_earliest) > new Date(v2[j].date)) {   
-                        date_earliest = v2[j].date;
-                    }
-                }
-                  
-                page_count += 1;
-                console.log("next page: ", v.nextPaginationToken);
-                console.log("current len: ", result.length, "total reviews: ", review_count, " page: ", page_count);
-
-                if (result.length > 0) {
-                    const app_review_csv = result.map(item => (
-                        review_keys.map(key =>{
+                        "request_date": (new Date()).toISOString().slice(0, 10),
+                        "count": review_count,
+                        "info": nextPag,
+                        "last_date": "",
+                        "first_date": "",
+                        "app_page_url": "",
+                    });
+                    const retry_csv = retry_list.map(item => (
+                        retry_keys.map(key => {
                             return item[key];
                         }).join(DELIMITER)
-                        ));
-                        
-                    const app_review = app_review_csv.join('\n') + '\n';
-                    fs.appendFileSync(dir +partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", app_review, console.log);
-                }
-                console.log("review %d of source: %d %s\n", v2.length, i, app_id);
-                
-                if (nextPag === null) {
-                    hasAll = true;
-                    console.log("Has ALL reviews! STOP.");
-                }
-
-            })
-            .catch((e) => {
-                console.error("Error from %s", app_id); 
-                console.error(e);
-                var retry_list = [];
-                retry_list.push({
-                    "cat_num": partition_dict.num,
-                    "app_num": i,
-                    "app_id": app_id,
-                    "request_date": (new Date()).toISOString().slice(0, 10),
-                    "count": review_count,
-                    "info": nextPag,
-                    "last_date": date_latest,
-                    "first_date": date_earliest,
-                    "app_page_url": "",
-                });
-                const retry_csv = retry_list.map(item => (
-                retry_keys.map(key => {
-                    return item[key];
-                }).join(DELIMITER)
-                ));
-                const retry_string = retry_csv.join('\n') + '\n';
-                fs.appendFileSync(dir + ".retry.csv", retry_string, console.log);
-                console.log("After error, total reviews: ", review_count, " page: ", page_count);
-            })
+                    ));
+                    const retry_string = retry_csv.join('\n') + '\n';
+                    fs.appendFileSync(dir + ".retry.csv", retry_string, console.log);
+                    console.log("After error, total reviews: ", review_count, " page: ", page_count);
+                })
 
             let promise = new Promise((resolve, reject) => {
                 setTimeout(() => resolve("done"), 3000)
-              });
+            });
             await promise;
 
         }
-        
-        csv_app_rank = partition_dict.category + "_" + partition_dict.country + "_" + rank_lang + "avg_rank";
-        let stat_dict = {
-            "app_id": app_id,
-            "app_name": app_name,
-            "category": partition_dict.category,
-            "category_rank": rank_records[i][csv_app_rank],
-            "review_amounts": review_count,
-            "last_review_date": date_latest,
-            "first_review_date": date_latest === null ? null : date_earliest,
-            "scrape_date": (new Date()).toISOString().slice(0, 10),
-        }
-        let stat_csv = review_stat_keys.map(key =>{
-            return stat_dict[key];
-        }).join(DELIMITER) + '\n';
-        fs.appendFileSync(dir+"app_review_stat.csv", stat_csv, console.log);
 
         let promise = new Promise((resolve, reject) => {
             setTimeout(() => resolve("done!"), 3000)
-          });
+        });
         await promise;
         console.log("FINISH ONE. number: ", i);
     }
 }
 
-async function read_csv (partition_dict) {
+async function read_csv(partition_dict) {
     rank_records = [];
-    fs.createReadStream("App_rank_list/Rank_track7days_WY/" + partition_dict.country+"_avg_rank_out_df.csv")
-           .pipe(csv())
-           .on('data', (data) => {
-             rank_records.push(data);
-           })
-           .on('end', () => {
-             console.log("Load csv: ", partition_dict.category, rank_records.length);
-           });
+    let dir = partition_dict.country + "_rank_" + get_date() + "/";
+    fs.createReadStream(dir + partition_dict.category + "_rank.csv")
+        .pipe(csv({
+            separator: '\u001F'
+        }))
+        .on('data', (data) => {
+            rank_records.push(data);
+        })
+        .on('end', () => {
+            console.log("Load csv: ", partition_dict.category, rank_records.length);
+        });
 }
 
 async function main() {
@@ -205,38 +172,35 @@ async function main() {
         let partition_dict = {
             "num": i,
             "category": category_list[i],
-            "lang": REVIEW_LANG,
+            // "lang": REVIEW_LANG,
             "country": REVIEW_COUNTRY      // US, IN, HK
         }
-        let dir = "App_review/" + partition_dict.country + "_review" + "/";
-        if (!fs.existsSync(dir)){
+        let dir = partition_dict.country + "_review_" + get_date() + "/";
+        if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
 
         read_csv(partition_dict);
-        
+
         let promise = new Promise((resolve, reject) => {
             setTimeout(() => resolve("done!"), 3000)
-          });
+        });
         await promise;
 
         // wirte titles
-        if (!fs.existsSync(dir+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv")) {
+        if (!fs.existsSync(dir + partition_dict.category + "_review.csv")) {
             const titles = review_keys.join(DELIMITER) + '\n';
-            fs.writeFileSync(dir+partition_dict.category+"_"+partition_dict.country+"_"+partition_dict.lang+".csv", titles, console.log);
-        }
-        if (!fs.existsSync(dir+"app_review_stat.csv")) {
-            const stat_titles = review_stat_keys.join(DELIMITER) + '\n';
-            fs.writeFileSync(dir+"app_review_stat.csv", stat_titles, console.log);
-        }
-        if (!fs.existsSync(dir+".retry.csv")) {
-            const retry_titles = retry_keys.join(DELIMITER) + '\n';
-            fs.writeFileSync(dir+".retry.csv", retry_titles, console.log);
+            fs.writeFileSync(dir + partition_dict.category + "_review.csv", titles, console.log);
         }
 
-        // keep only frst 20 apps
-        rank_records = rank_records.slice(0, 20);
-        console.log("Category: ", i, rank_records.length);
+        if (!fs.existsSync(dir + ".retry.csv")) {
+            const retry_titles = retry_keys.join(DELIMITER) + '\n';
+            fs.writeFileSync(dir + ".retry.csv", retry_titles, console.log);
+        }
+
+        // keep only frst 50 apps
+        // rank_records = rank_records.slice(0, 50);
+        console.log("Category: ", i, " number: ", rank_records.length);
         await scrape_review(partition_dict, rank_records, dir);
     }
 }
