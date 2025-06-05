@@ -27,7 +27,7 @@ function get_date() {
     var yyyy = today.getFullYear();
 
     today = yyyy + mm + dd;
-    return today;
+    return "20250604";
 }
 
 
