@@ -83,8 +83,8 @@ async function scrape_review(partition_dict, rank_records, dir) {
                     hasAll = true;
                 }
             } else {
-                if (app_num < max_app_num) {
-                    console.log("app %s already meet demands without retry.", app_id.);
+                if (app_num < max_retry_app_num) {
+                    console.log("app %s already meet demands without retry.", app_id);
                     hasAll = true;
                 }
             }
@@ -124,7 +124,7 @@ async function scrape_review(partition_dict, rank_records, dir) {
                             "author_name": v2[j].userName,
                             "rating": v2[j].score,
                             "review_title": v2[j].title,
-                            "review_content": v2[j].text,
+                            "review_content": v2[j].text.replace(/\r?\n/g, " "),
                             "app_version": v2[j].version,
                             "helpful_voting": v2[j].thumbsUp,
                             "url": v2[j].url
