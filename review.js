@@ -172,7 +172,7 @@ async function main() {
         let partition_dict = {
             "num": i,
             "category": category_list[i],
-            // "lang": REVIEW_LANG,
+            "lang": REVIEW_LANG,
             "country": REVIEW_COUNTRY      // US, IN, HK
         }
         let dir = partition_dict.country + "_review_" + get_date() + "/";
