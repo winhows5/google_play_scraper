@@ -9,7 +9,7 @@ import csv from 'csv-parser';
 import { category_list, review_keys, review_stat_keys, retry_keys, DELIMITER } from './const.js';
 
 
-var REVIEW_LIMIT = 50000;
+var REVIEW_LIMIT = 20000;
 
 // change here for distributed servers
 var REVIEW_COUNTRY = "US";
@@ -18,6 +18,7 @@ var PART_START = 0;      // partition for category range
 var PART_END = 1;
 
 var rank_records;
+var retry_records = {};
 
 
 function get_date() {
@@ -35,10 +36,7 @@ function get_date() {
 */  
 async function scrape_review(partition_dict, rank_records, dir) {
 
-    // Additional codes for easy retry
-    let tmp = 0;
-
-    for (let i = tmp; i < rank_records.length; i++) {
+    for (let i = 0; i < rank_records.length; i++) {
         var page_count = 0;
         var review_count = 0;
         console.log("Current app: ", rank_records[i]["app_id"]);
@@ -47,6 +45,17 @@ async function scrape_review(partition_dict, rank_records, dir) {
         let app_name = rank_records[i]["app_name"];
         let nextPag = null;
         let hasAll = false;
+        // Search retry records.
+        if (retry_records[cat_num] &&
+            retry_records[cat_num][app_id] !== undefined) {
+                console.log("Found retry record: %s", app_id);
+                review_count = retry_records[cat_num][app_id]["count"];
+                nextPag = retry_records[cat_num][app_id]["nextPage"];
+                if (review_count >= REVIEW_LIMIT) {
+                    console.log("app %s already meet demands: %d", app_id, review_count);
+                    hasAll = true;
+                }
+            }
         while (!hasAll) {
             console.log("current page: ", nextPag);
             await gplay.reviews({
@@ -167,7 +176,45 @@ async function read_csv(partition_dict) {
         });
 }
 
+async function read_retry_csv(partition_dict) {
+    let dir = partition_dict.country + "_review_" + get_date() + "/";
+    fs.createReadStream(dir + ".retry.csv")
+        .pipe(csv({
+            separator: '\u001F'
+        }))
+        .on('data', (data) => {
+            cat_num = data["cat_num"];
+            if (!(cat_num in retry_records)) {
+                retry_records[cat_num] = {};
+            }
+            app_id = data["app_id"];
+            if (!(app_id in retry_records)) {
+                retry_records[cat_num][app_id] = {};
+            }
+            // Keep the latest retry record.
+            if (retry_records[cat_num][app_id]["count"] !== undefined) {
+                if (retry_records[cat_num][app_id]["count"] > data["count"]) {
+                    return;
+                }
+            }
+            retry_records[cat_num][app_id]["app_num"] = data["app_num"];
+            retry_records[cat_num][app_id]["count"] = data["count"];
+            retry_records[cat_num][app_id]["nextPage"] = data["info"];
+        })
+        .on('end', () => {
+            console.log("Load csv: ", partition_dict.category, rank_records.length);
+        });
+}
+
 async function main() {
+
+    read_retry_csv(partition_dict);
+    let promise = new Promise((resolve, reject) => {
+        setTimeout(() => resolve("done!"), 1000)
+    });
+    await promise;
+    console.log("Load retry entries: ", retry_records);
+
     for (let i = PART_START; i < PART_END; i++) {
         let partition_dict = {
             "num": i,
