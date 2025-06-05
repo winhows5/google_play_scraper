@@ -1,5 +1,7 @@
 /*
 Get the reviews from a app list. This list is obtained by rank.js.
+Usage:
+node review.js --cat_start 0 --cat_end 1
 */
 
 
@@ -8,17 +10,31 @@ import fs from 'fs';
 import csv from 'csv-parser';
 import { category_list, review_keys, review_stat_keys, retry_keys, DELIMITER } from './const.js';
 
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
 
 var REVIEW_LIMIT = 20000;
 
 // change here for distributed servers
 var REVIEW_COUNTRY = "US";
 var REVIEW_LANG = "en_US";
-var PART_START = 0;      // partition for category range
-var PART_END = 1;
 
 var rank_records;
 var retry_records = {};
+
+// Parse CLI arguments
+const argv = yargs(hideBin(process.argv))
+.option('cat_start', {
+    type: 'string',
+    description: 'Category ID',
+    demandOption: true,
+  })
+  .option('cat_end', {
+    type: 'string',
+    description: 'Category ID',
+    demandOption: true,
+  })
+  .parse();
 
 
 function get_date() {
@@ -206,7 +222,7 @@ async function read_retry_csv(partition_dict) {
         });
 }
 
-async function main() {
+async function main(cat_start, cat_end) {
 
     read_retry_csv(partition_dict);
     let promise = new Promise((resolve, reject) => {
@@ -215,7 +231,7 @@ async function main() {
     await promise;
     console.log("Load retry entries: ", retry_records);
 
-    for (let i = PART_START; i < PART_END; i++) {
+    for (let i = cat_start; i < cat_end; i++) {
         let partition_dict = {
             "num": i,
             "category": category_list[i],
@@ -252,4 +268,4 @@ async function main() {
     }
 }
 
-main();
+main(argv.cat_start, argv.cat_end);
