@@ -254,13 +254,6 @@ async function main(cat_start, cat_end) {
             fs.mkdirSync(dir, { recursive: true });
         }
 
-        read_csv(partition_dict);
-        read_retry_csv(partition_dict);
-        let promise = new Promise((resolve, reject) => {
-            setTimeout(() => resolve("done!"), 3000)
-        });
-        await promise;
-
         // wirte titles
         if (!fs.existsSync(dir + partition_dict.category + "_review.csv")) {
             const titles = review_keys.join(DELIMITER) + '\n';
@@ -271,6 +264,13 @@ async function main(cat_start, cat_end) {
             const retry_titles = retry_keys.join(DELIMITER) + '\n';
             fs.writeFileSync(dir + ".retry.csv", retry_titles, console.log);
         }
+
+        read_csv(partition_dict);
+        read_retry_csv(partition_dict);
+        let promise = new Promise((resolve, reject) => {
+            setTimeout(() => resolve("done!"), 3000)
+        });
+        await promise;
 
         // keep only frst 50 apps
         // rank_records = rank_records.slice(0, 50);
