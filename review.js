@@ -1,7 +1,7 @@
 /*
 Get the reviews from a app list. This list is obtained by rank.js.
 Usage:
-node review.js --cat_start 0 --cat_end 1
+node review.js --cat_start 0 --cat_end 1 >> log 2>&1 
 */
 
 
@@ -214,8 +214,8 @@ async function read_retry_csv(partition_dict) {
             }
             // Keep the latest retry record.
             retry_records[cat_num]["app_id"] = data["app_id"];
-            retry_records[cat_num]["app_num"] = data["app_num"];
-            retry_records[cat_num]["count"] = data["count"];
+            retry_records[cat_num]["app_num"] = parseInt(data["app_num"]);
+            retry_records[cat_num]["count"] = parseInt(data["count"]);
             retry_records[cat_num]["nextPage"] = data["info"];
         })
         .on('end', () => {
