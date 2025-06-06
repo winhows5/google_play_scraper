@@ -52,15 +52,7 @@ function get_date() {
 */  
 async function scrape_review(partition_dict, rank_records, dir) {
     // Track the max retry app_num in current category.
-    var max_retry_app_num = -1;
     var cat_num = partition_dict.num;
-    if (retry_records[cat_num] !== undefined) {
-        for (const app_id in retry_records[cat_num]) {
-            if (retry_records[cat_num][app_id]["app_num"] > max_retry_app_num) {
-                max_retry_app_num = retry_records[cat_num][app_id]["app_num"];
-            }
-        }
-    }
     for (let i = 0; i < rank_records.length; i++) {
         var page_count = 0;
         var review_count = 0;
@@ -73,22 +65,20 @@ async function scrape_review(partition_dict, rank_records, dir) {
         let hasAll = false;
         // Search retry records.
         if (retry_records[cat_num] !== undefined) {
-            if (retry_records[cat_num][app_id] !== undefined) {
+            console.log("Found retry record: %s", retry_records[cat_num]["app_id"]);
+            var retry_app_num = retry_records[cat_num]["app_num"];
+            if (app_num < retry_app_num) {
+                console.log("app %s already meet demands without retry.", app_id);
+                hasAll = true;
+            } else {
                 // Setup retry.
-                console.log("Found retry record: %s", app_id);
-                review_count = retry_records[cat_num][app_id]["count"];
-                nextPag = retry_records[cat_num][app_id]["nextPage"];
+                review_count = retry_records[cat_num]["count"];
+                nextPag = retry_records[cat_num]["nextPage"];
                 if (review_count >= REVIEW_LIMIT) {
                     console.log("app %s already meet demands: %d", app_id, review_count);
                     hasAll = true;
                 }
-            } else {
-                if (app_num < max_retry_app_num) {
-                    console.log("app %s already meet demands without retry.", app_id);
-                    hasAll = true;
-                }
             }
-
         }
         while (!hasAll) {
             console.log("current page: ", nextPag);
@@ -222,19 +212,11 @@ async function read_retry_csv(partition_dict) {
             if (!(cat_num in retry_records)) {
                 retry_records[cat_num] = {};
             }
-            var app_id = data["app_id"];
-            if (!(app_id in retry_records)) {
-                retry_records[cat_num][app_id] = {};
-            }
             // Keep the latest retry record.
-            if (retry_records[cat_num][app_id]["count"] !== undefined) {
-                if (retry_records[cat_num][app_id]["count"] > data["count"]) {
-                    return;
-                }
-            }
-            retry_records[cat_num][app_id]["app_num"] = data["app_num"];
-            retry_records[cat_num][app_id]["count"] = data["count"];
-            retry_records[cat_num][app_id]["nextPage"] = data["info"];
+            retry_records[cat_num]["app_id"] = data["app_id"];
+            retry_records[cat_num]["app_num"] = data["app_num"];
+            retry_records[cat_num]["count"] = data["count"];
+            retry_records[cat_num]["nextPage"] = data["info"];
         })
         .on('end', () => {
             console.log("Load retry records: ", retry_records[partition_dict.num]);
