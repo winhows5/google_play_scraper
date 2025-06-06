@@ -34,6 +34,11 @@ const argv = yargs(hideBin(process.argv))
     description: 'Category ID',
     demandOption: true,
   })
+  .option('app_num', {
+    type: 'string',
+    description: 'App num',
+    demandOption: false,
+  })
   .parse();
 
 
@@ -53,7 +58,16 @@ function get_date() {
 async function scrape_review(partition_dict, rank_records, dir) {
     // Track the max retry app_num in current category.
     var cat_num = partition_dict.num;
+
     for (let i = 0; i < rank_records.length; i++) {
+
+        if (partition_dict.app_num !== undefined) {
+            if (partition_dict.app_num != i) {
+                console.log("Skip app %d as it is specified %d", i, partition_dict.app_num);
+                continue;
+            }
+        }
+
         var page_count = 0;
         var review_count = 0;
         console.log("Current app: ", rank_records[i]["app_id"]);
@@ -223,14 +237,20 @@ async function read_retry_csv(partition_dict) {
         });
 }
 
-async function main(cat_start, cat_end) {
+async function main(cat_start, cat_end, app_num) {
+    cat_start = parseInt(cat_start);
+    cat_end = parseInt(cat_end);
+    if (app_num !== undefined) {
+        app_num = parseInt(app_num)
+    }
 
     for (let i = cat_start; i < cat_end; i++) {
         let partition_dict = {
             "num": i,
             "category": category_list[i],
             "lang": REVIEW_LANG,
-            "country": REVIEW_COUNTRY      // US, IN, HK
+            "country": REVIEW_COUNTRY,      // US, IN, HK
+            "app_num": app_num
         }
         let dir = partition_dict.country + "_review_" + get_date() + "/";
         if (!fs.existsSync(dir)) {
@@ -262,4 +282,4 @@ async function main(cat_start, cat_end) {
     }
 }
 
-main(argv.cat_start, argv.cat_end);
+main(argv.cat_start, argv.cat_end, argv.app_num);
