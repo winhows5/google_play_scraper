@@ -70,7 +70,7 @@ async function scrape_review(partition_dict, rank_records, dir) {
             if (app_num < retry_app_num) {
                 console.log("app %s already meet demands without retry.", app_id);
                 hasAll = true;
-            } else {
+            } else if (app_num == retry_app_num) {
                 // Setup retry.
                 review_count = retry_records[cat_num]["count"];
                 nextPag = retry_records[cat_num]["nextPage"];
