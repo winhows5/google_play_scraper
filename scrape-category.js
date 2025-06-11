@@ -6,7 +6,7 @@ import path from 'path';
 import os from 'os';
 
 // Configuration
-const MAX_REVIEWS_PER_APP = 50000;
+const MAX_REVIEWS_PER_APP = 5000;
 const BASE_DELAY = parseInt(process.env.SCRAPE_DELAY || 2000); // 2s base delay
 const RATE_LIMIT_DELAY = 5000; // 5s when rate limited
 const MAX_RETRIES = 5;
@@ -258,7 +258,7 @@ async function scrapeAppReviews(appId, rateLimiter, progress) {
     while (reviewCount < MAX_REVIEWS_PER_APP) {
         try {
             // Check memory usage periodically
-            if (reviewCount % 5000 === 0 && reviewCount > 0) {
+            if (reviewCount % 1000 === 0 && reviewCount > 0) {
                 const usage = process.memoryUsage();
                 const usedMB = Math.round(usage.heapUsed / 1024 / 1024);
                 

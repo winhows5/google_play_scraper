@@ -3,7 +3,7 @@ import gplay from 'google-play-scraper';
 import { insertAppReview, getAppIds } from './db.js';
 
 // Configuration
-const MAX_REVIEWS_PER_APP = 50000; // Maximum reviews to collect per app
+const MAX_REVIEWS_PER_APP = 5000 ; // Maximum reviews to collect per app
 const MAX_RETRIES = 3;             // Maximum number of retries on failure
 const RETRY_DELAY = 5000;          // Base delay between retries (ms)
 const SCRAPE_DELAY = process.env.SCRAPE_DELAY || 1000; // Delay between requests
