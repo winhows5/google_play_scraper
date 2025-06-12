@@ -2,7 +2,20 @@
   "name": "google_play_scraper",
   "version": "1.0.0",
   "type": "module",
-  "main": "index.js",
+  "main": "master-pipeline.js",
+  "scripts": {
+    "start": "node master-pipeline.js",
+    "start:full": "node master-pipeline.js",
+    "start:ranks": "node master-pipeline.js --ranks-only",
+    "start:metadata": "node master-pipeline.js --metadata-only", 
+    "start:reviews": "node master-pipeline.js --reviews-only",
+    "start:strict": "STRICT_MODE=true node master-pipeline.js",
+    "start:monitor": "node master-pipeline.js --monitor",
+    "cleanup": "node cleanup-duplicates.js",
+    "monitor": "node monitor-progress.js",
+    "validate": "node validate.js",
+    "help": "node master-pipeline.js --help"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",
     "dotenv": "^16.4.7",

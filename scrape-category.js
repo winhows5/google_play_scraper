@@ -1,6 +1,6 @@
 // scrape-category.js
 import gplay from 'google-play-scraper';
-import { insertAppReview, insertAppReviewBatch, fetchAllRecords, getScrapedAppIds } from './db.js';
+import { insertAppReview, insertAppReviewBatch, fetchAllRecords, getScrapedAppIds, getAppsWithSufficientReviews } from './db.js';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -314,9 +314,13 @@ async function scrapeAppReviews(appId, rateLimiter, progress) {
                     return true;
                 });
             
+            // Limit the number of reviews to not exceed MAX_REVIEWS_PER_APP
+            const remainingReviews = MAX_REVIEWS_PER_APP - reviewCount;
+            const reviewsToAdd = newReviews.slice(0, remainingReviews);
+            
             // Add to buffer
-            reviewBuffer.push(...newReviews);
-            reviewCount += newReviews.length;
+            reviewBuffer.push(...reviewsToAdd);
+            reviewCount += reviewsToAdd.length;
             
             // Insert when buffer is full or no more reviews
             if (reviewBuffer.length >= BUFFER_SIZE || !reviews.nextPaginationToken) {

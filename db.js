@@ -217,74 +217,173 @@ async function getCategoryAppCounts() {
 
 async function getScrapedAppIds() {
     try {
-        console.log('Fetching list of apps with existing reviews...');
+        console.log('Fetching list of apps with sufficient reviews (5000+)...');
         
-        // Use raw SQL for efficiency - gets distinct app_ids that have reviews
-        const { data, error } = await supabase
-            .rpc('get_distinct_app_ids');
+        // Use the new function to get apps with 5000+ reviews
+        const appsWithSufficientReviews = await getAppsWithSufficientReviews(5000);
         
-        if (error) {
-            // Fallback: If RPC doesn't exist, use a different approach
-            console.log('RPC not found, using fallback method...');
-            
-            // Get a sample to check if any reviews exist
-            const { data: sample, error: sampleError } = await supabase
-                .from('app_reviews')
-                .select('app_id')
-                .limit(1);
-            
-            if (sampleError || !sample || sample.length === 0) {
-                console.log('No reviews found in database');
-                return [];
-            }
-            
-            // If reviews exist, get distinct app_ids page by page
-            const distinctAppIds = new Set();
-            let lastAppId = null;
-            const pageSize = 10000;
-            
-            while (true) {
-                let query = supabase
-                    .from('app_reviews')
-                    .select('app_id')
-                    .order('app_id')
-                    .limit(pageSize);
-                
-                if (lastAppId) {
-                    query = query.gt('app_id', lastAppId);
-                }
-                
-                const { data: batch, error: batchError } = await query;
-                
-                if (batchError) {
-                    console.error('Error fetching app_ids:', batchError);
-                    break;
-                }
-                
-                if (!batch || batch.length === 0) {
-                    break;
-                }
-                
-                batch.forEach(row => distinctAppIds.add(row.app_id));
-                lastAppId = batch[batch.length - 1].app_id;
-                
-                console.log(`Processed ${distinctAppIds.size} unique apps so far...`);
-                
-                if (batch.length < pageSize) {
-                    break;
-                }
-            }
-            
-            const result = Array.from(distinctAppIds);
-            console.log(`Found ${result.length} apps with existing reviews`);
-            return result;
-        }
-        
-        console.log(`Found ${data.length} apps with existing reviews`);
-        return data.map(row => row.app_id);
+        console.log(`Found ${appsWithSufficientReviews.length} apps with sufficient reviews (5000+)`);
+        return appsWithSufficientReviews;
         
     } catch (error) {
         console.error('Error in getScrapedAppIds:', error);
+        
+        // Fallback to old method if new method fails
+        console.log('Falling back to original method...');
+        try {
+            // Use raw SQL for efficiency - gets distinct app_ids that have reviews
+            const { data, error } = await supabase
+                .rpc('get_distinct_app_ids');
+            
+            if (error) {
+                // Fallback: If RPC doesn't exist, use a different approach
+                console.log('RPC not found, using fallback method...');
+                
+                // Get a sample to check if any reviews exist
+                const { data: sample, error: sampleError } = await supabase
+                    .from('app_reviews')
+                    .select('app_id')
+                    .limit(1);
+                
+                if (sampleError || !sample || sample.length === 0) {
+                    console.log('No reviews found in database');
+                    return [];
+                }
+                
+                // If reviews exist, get distinct app_ids page by page
+                const distinctAppIds = new Set();
+                let lastAppId = null;
+                const pageSize = 10000;
+                
+                while (true) {
+                    let query = supabase
+                        .from('app_reviews')
+                        .select('app_id')
+                        .order('app_id')
+                        .limit(pageSize);
+                    
+                    if (lastAppId) {
+                        query = query.gt('app_id', lastAppId);
+                    }
+                    
+                    const { data: batch, error: batchError } = await query;
+                    
+                    if (batchError) {
+                        console.error('Error fetching app_ids:', batchError);
+                        break;
+                    }
+                    
+                    if (!batch || batch.length === 0) {
+                        break;
+                    }
+                    
+                    batch.forEach(row => distinctAppIds.add(row.app_id));
+                    lastAppId = batch[batch.length - 1].app_id;
+                    
+                    console.log(`Processed ${distinctAppIds.size} unique apps so far...`);
+                    
+                    if (batch.length < pageSize) {
+                        break;
+                    }
+                }
+                
+                const result = Array.from(distinctAppIds);
+                console.log(`Found ${result.length} apps with existing reviews (fallback)`);
+                return result;
+            }
+            
+            console.log(`Found ${data.length} apps with existing reviews (RPC)`);
+            return data.map(row => row.app_id);
+            
+        } catch (fallbackError) {
+            console.error('Fallback method also failed:', fallbackError);
+            return [];
+        }
+    }
+}
+
+// New function to get apps that have sufficient reviews (5000+)
+async function getAppsWithSufficientReviews(minReviews = 5000) {
+    try {
+        console.log(`Fetching apps with at least ${minReviews} reviews...`);
+        
+        // Try to use the new database function first
+        const { data, error } = await supabase
+            .rpc('get_apps_with_sufficient_reviews', { min_reviews: minReviews });
+        
+        if (error) {
+            console.log('Database function not available, using fallback method...');
+            
+            // Fallback: Use a more efficient GROUP BY query
+            const { data: groupData, error: groupError } = await supabase
+                .from('app_reviews')
+                .select('app_id')
+                .group('app_id')
+                .having('count(*)', 'gte', minReviews);
+            
+            if (groupError) {
+                // Final fallback: count reviews for each app manually
+                console.log('GROUP BY query failed, using manual count method...');
+                
+                // First get all apps that have any reviews
+                const { data: appsWithReviews, error: appsError } = await supabase
+                    .from('app_reviews')
+                    .select('app_id')
+                    .order('app_id');
+                
+                if (appsError) throw appsError;
+                
+                // Get unique app IDs
+                const uniqueAppIds = [...new Set(appsWithReviews.map(r => r.app_id))];
+                console.log(`Checking review counts for ${uniqueAppIds.length} apps...`);
+                
+                const sufficientApps = [];
+                
+                // Check each app's review count in batches
+                const batchSize = 10;
+                for (let i = 0; i < uniqueAppIds.length; i += batchSize) {
+                    const batch = uniqueAppIds.slice(i, i + batchSize);
+                    
+                    await Promise.all(batch.map(async (appId) => {
+                        try {
+                            const { count, error: countError } = await supabase
+                                .from('app_reviews')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('app_id', appId);
+                            
+                            if (!countError && count >= minReviews) {
+                                sufficientApps.push(appId);
+                            }
+                        } catch (e) {
+                            console.warn(`Failed to count reviews for ${appId}:`, e.message);
+                        }
+                    }));
+                    
+                    // Progress update every 100 apps
+                    if (i % 100 === 0) {
+                        console.log(`Processed ${Math.min(i + batchSize, uniqueAppIds.length)}/${uniqueAppIds.length} apps...`);
+                    }
+                    
+                    // Small delay to avoid overwhelming the database
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+                
+                console.log(`Found ${sufficientApps.length} apps with sufficient reviews (manual method)`);
+                return sufficientApps;
+            }
+            
+            const result = groupData.map(row => row.app_id);
+            console.log(`Found ${result.length} apps with at least ${minReviews} reviews (GROUP BY)`);
+            return result;
+        }
+        
+        // Success with database function
+        const result = data.map(row => row.app_id);
+        console.log(`Found ${result.length} apps with at least ${minReviews} reviews (DB function)`);
+        return result;
+        
+    } catch (error) {
+        console.error('Error in getAppsWithSufficientReviews:', error);
         return [];
     }
 }
@@ -298,5 +397,6 @@ export {
     getAppIds,
     getCategoryAppCounts,
     fetchAllRecords,
-    getScrapedAppIds
+    getScrapedAppIds,
+    getAppsWithSufficientReviews
 };

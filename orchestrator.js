@@ -6,8 +6,8 @@ import os from 'os';
 import { getCategoryAppCounts } from './db.js';
 
 // Configuration
-const MAX_CONCURRENT_SCRAPERS = parseInt(process.env.MAX_CONCURRENT || 10); // Don't run all 32 at once
-const STAGGER_DELAY = 30000; // 30s between launching scrapers
+const MAX_CONCURRENT_SCRAPERS = parseInt(process.env.MAX_CONCURRENT || 20); // Increased from 10 to 20
+const STAGGER_DELAY = 15000; // Reduced from 30s to 15s between launching scrapers
 const RESOURCE_CHECK_INTERVAL = 60000; // Check resources every minute
 
 // All categories
