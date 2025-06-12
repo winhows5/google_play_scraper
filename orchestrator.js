@@ -248,18 +248,48 @@ class ScraperOrchestrator {
             try {
                 await this.runBatch();
                 
-                // Check if all done
-                if (this.completedCategories.size + this.failedCategories.size >= ALL_CATEGORIES.length) {
+                // NEW: Check completion based on actual app progress, not just categories
+                const allAppIds = await this.checkActualCompletion();
+                if (allAppIds.allComplete) {
                     clearInterval(orchestrationInterval);
                     clearInterval(statusInterval);
                     await this.displayStatus();
-                    console.log('✅ All categories processed!');
+                    console.log('✅ All apps processed!');
+                    console.log(`📊 Final stats: ${allAppIds.completedApps}/${allAppIds.totalApps} apps have sufficient reviews`);
                     
                     if (this.failedCategories.size > 0) {
                         console.log('\n❌ Failed categories:', Array.from(this.failedCategories).join(', '));
                     }
                     
                     process.exit(this.failedCategories.size > 0 ? 1 : 0);
+                }
+                
+                // Fallback: Original category-based check (but with higher threshold)
+                const categoriesProcessed = this.completedCategories.size + this.failedCategories.size;
+                if (categoriesProcessed >= ALL_CATEGORIES.length) {
+                    // All categories attempted, but check if we still have apps to process
+                    if (!allAppIds.allComplete) {
+                        console.log(`⚠️  All categories processed but ${allAppIds.totalApps - allAppIds.completedApps} apps still need reviews`);
+                        console.log('🔄 Restarting failed categories to capture remaining apps...');
+                        
+                        // Reset failed categories to retry
+                        this.failedCategories.clear();
+                        this.stats.restarts++;
+                        
+                        // Don't exit, let it continue
+                        if (this.stats.restarts > 3) {
+                            console.log('❌ Maximum restarts reached, stopping');
+                            clearInterval(orchestrationInterval);
+                            clearInterval(statusInterval);
+                            process.exit(1);
+                        }
+                    } else {
+                        clearInterval(orchestrationInterval);
+                        clearInterval(statusInterval);
+                        await this.displayStatus();
+                        console.log('✅ All categories and apps processed!');
+                        process.exit(this.failedCategories.size > 0 ? 1 : 0);
+                    }
                 }
             } catch (error) {
                 console.error('Orchestration error:', error);
@@ -288,6 +318,62 @@ class ScraperOrchestrator {
             await this.saveState();
             process.exit(0);
         });
+    }
+    
+    // NEW: Check actual app-level completion with intelligent detection
+    async checkActualCompletion() {
+        try {
+            const { getAppIds, getAppsNeedingReviews } = await import('./db.js');
+            
+            const analysis = await getAppsNeedingReviews();
+            
+            const completedApps = analysis.stats.completed;
+            const totalApps = analysis.stats.total;
+            const remainingApps = analysis.stats.needsWork;
+            
+            // Simple completion criteria: Have we attempted all 1,600 apps?
+            // An app is "attempted" if it has ANY reviews (even just 10 or 50)
+            const allComplete = remainingApps === 0; // All apps have been attempted
+            
+            // Log progress every few checks
+            if (this.lastProgressLog && Date.now() - this.lastProgressLog < 300000) {
+                // Don't log too frequently
+            } else {
+                console.log(`📊 App Scraping Progress:`);
+                console.log(`  Total apps: ${totalApps}`);
+                console.log(`  Apps attempted (have any reviews): ${completedApps}`);
+                console.log(`  Apps not yet attempted: ${remainingApps}`);
+                console.log(`  Progress: ${(completedApps/totalApps*100).toFixed(1)}% of apps attempted`);
+                console.log(`  Status: ${allComplete ? 'ALL APPS ATTEMPTED' : 'STILL SCRAPING'}`);
+                this.lastProgressLog = Date.now();
+            }
+            
+            return {
+                allComplete,
+                completedApps,
+                totalApps,
+                remainingApps,
+                completionPercentage: (completedApps / totalApps * 100).toFixed(1),
+                highPriorityRemaining: remainingApps, // All remaining are high priority (not attempted)
+                mediumPriorityRemaining: 0,
+                isBasicallyComplete: allComplete,
+                isFullyComplete: allComplete
+            };
+        } catch (error) {
+            console.error('Error checking completion:', error);
+            // Fallback to old logic if this fails
+            return {
+                allComplete: false,
+                completedApps: 0,
+                totalApps: 1600,
+                remainingApps: 1600,
+                completionPercentage: 0,
+                highPriorityRemaining: 1600,
+                mediumPriorityRemaining: 0,
+                isBasicallyComplete: false,
+                isFullyComplete: false
+            };
+        }
     }
 }
 

@@ -14,7 +14,9 @@
     "cleanup": "node cleanup-duplicates.js",
     "monitor": "node monitor-progress.js",
     "validate": "node validate.js",
-    "help": "node master-pipeline.js --help"
+    "help": "node master-pipeline.js --help",
+    "resume": "node resume-scraping.js --resume",
+    "analyze": "node resume-scraping.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",

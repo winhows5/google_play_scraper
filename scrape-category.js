@@ -190,7 +190,8 @@ async function scrapeCategoryReviews(category) {
         
         // Get already scraped apps efficiently
         console.log(`Checking for already scraped apps...`);
-        const scrapedAppIdsList = await getScrapedAppIds();
+        const { getIntelligentlyScrapedAppIds } = await import('./db.js');
+        const scrapedAppIdsList = await getIntelligentlyScrapedAppIds();
         const scrapedApps = new Set(scrapedAppIdsList);
         console.log(`Found ${scrapedApps.size} apps with existing reviews`);
         
