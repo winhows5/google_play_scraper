@@ -397,71 +397,44 @@ async function getAppsNeedingReviews() {
         const allAppIds = await getAppIds();
         console.log(`Total apps to scrape: ${allAppIds.length}`);
         
-        // Get current review counts for all apps
-        const { data: reviewCounts, error } = await supabase
+        // Get apps that actually have reviews - use distinct query
+        const { data: appsWithReviews, error } = await supabase
             .from('app_reviews')
             .select('app_id')
-            .group('app_id')
-            .order('count', { ascending: false });
+            .order('app_id');
         
         if (error) {
             console.log('Using fallback method for review counts...');
             return await getAppsNeedingReviewsFallback(allAppIds);
         }
         
-        // Create a map of app_id to review count
-        const reviewCountMap = new Map();
-        for (const row of reviewCounts) {
-            const { count, error: countError } = await supabase
-                .from('app_reviews')
-                .select('*', { count: 'exact', head: true })
-                .eq('app_id', row.app_id);
-            
-            if (!countError) {
-                reviewCountMap.set(row.app_id, count);
-            }
-        }
+        // Create a set of apps that have been attempted (have any reviews)
+        const attemptedApps = new Set(appsWithReviews.map(row => row.app_id));
+        console.log(`Apps that have been attempted (have any reviews): ${attemptedApps.size}`);
         
         const appsNeedingReviews = [];
         const completedApps = [];
         
-        // Check each app - key change: we consider an app "attempted" if it has ANY reviews
+        // Check each app - if it has ANY reviews, consider it "attempted"
         for (const appId of allAppIds) {
-            const currentReviews = reviewCountMap.get(appId) || 0;
-            
-            if (currentReviews === 0) {
-                // No reviews at all - definitely needs scraping
+            if (attemptedApps.has(appId)) {
+                // Has been attempted - add to completed list
+                completedApps.push(appId);
+            } else {
+                // Never attempted - needs scraping
                 appsNeedingReviews.push({
                     app_id: appId,
                     current_reviews: 0,
                     reason: 'not_attempted',
                     priority: 'high'
                 });
-            } else {
-                // Has some reviews - consider it "attempted/completed"
-                // This is the key change: we don't try to get more once we've attempted an app
-                completedApps.push(appId);
-                
-                // But we can still categorize for reporting purposes
-                if (currentReviews < 100) {
-                    // Likely a small app with limited reviews available
-                } else if (currentReviews < 1000) {
-                    // Medium-sized app
-                } else if (currentReviews >= 5000) {
-                    // Large app with many reviews
-                }
             }
         }
         
         console.log(`Apps analysis:`);
         console.log(`  Apps attempted (have any reviews): ${completedApps.length}`);
         console.log(`  Apps not yet attempted: ${appsNeedingReviews.length}`);
-        console.log(`  Apps with 5000+ reviews: ${completedApps.filter(appId => (reviewCountMap.get(appId) || 0) >= 5000).length}`);
-        console.log(`  Apps with 100-5000 reviews: ${completedApps.filter(appId => {
-            const count = reviewCountMap.get(appId) || 0;
-            return count >= 100 && count < 5000;
-        }).length}`);
-        console.log(`  Apps with <100 reviews: ${completedApps.filter(appId => (reviewCountMap.get(appId) || 0) < 100).length}`);
+        console.log(`  Progress: ${(completedApps.length / allAppIds.length * 100).toFixed(1)}% of apps attempted`);
         
         return {
             needsReviews: appsNeedingReviews,
