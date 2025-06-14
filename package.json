@@ -11,7 +11,6 @@
     "start:reviews": "node master-pipeline.js --reviews-only",
     "start:strict": "STRICT_MODE=true node master-pipeline.js",
     "start:monitor": "node master-pipeline.js --monitor",
-    "cleanup": "node cleanup-duplicates.js",
     "monitor": "node monitor-progress.js",
     "validate": "node validate.js",
     "help": "node master-pipeline.js --help"

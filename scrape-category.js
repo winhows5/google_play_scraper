@@ -1,6 +1,6 @@
 // scrape-category.js
 import gplay from 'google-play-scraper';
-import { insertAppReview, insertAppReviewBatch, fetchAllRecords, getScrapedAppIds, getAppsWithSufficientReviews } from './db.js';
+import { insertAppReview, insertAppReviewBatch, fetchAllRecords, supabase } from './db.js';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -188,10 +188,16 @@ async function scrapeCategoryReviews(category) {
             return;
         }
         
-        // Get already scraped apps efficiently
+        // Get already scraped apps efficiently - simplified approach
         console.log(`Checking for already scraped apps...`);
-        const scrapedAppIdsList = await getScrapedAppIds();
-        const scrapedApps = new Set(scrapedAppIdsList);
+        
+        // Get apps that already have reviews (simple check)
+        const { data: appsWithReviews, error } = await supabase
+            .from('app_reviews')
+            .select('app_id')
+            .in('app_id', categoryApps);
+        
+        const scrapedApps = new Set(appsWithReviews?.map(r => r.app_id) || []);
         console.log(`Found ${scrapedApps.size} apps with existing reviews`);
         
         // Filter out already scraped apps

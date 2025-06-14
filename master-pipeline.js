@@ -4,10 +4,9 @@ import fs from 'fs/promises';
 import os from 'os';
 import { scrapeRankings } from './rank.js';
 import { scrapeAppMetadata } from './meta.js';
-import { getCategoryAppCounts, getAppIds, fetchAllRecords, getScrapedAppIds } from './db.js';
+import { getCategoryAppCounts, getAppIds, fetchAllRecords } from './db.js';
 import { ScraperOrchestrator } from './orchestrator.js';
 import { ProgressMonitor } from './monitor-progress.js';
-import { DuplicateCleanup } from './cleanup-duplicates.js';
 
 // Pipeline configuration
 const PIPELINE_CONFIG = {
@@ -340,21 +339,16 @@ class MasterPipeline {
         this.stats.phases.reviews.startTime = Date.now();
         
         try {
-            // Run cleanup if enabled
-            if (PIPELINE_CONFIG.validation.autoCleanup) {
-                console.log('🧹 Running duplicate cleanup before reviews...');
-                const cleanup = new DuplicateCleanup();
-                await cleanup.run();
-                console.log('✅ Cleanup completed\n');
-            }
-            
-            // Get apps that need reviews
+            // Get apps that need reviews - simplified check
             const allAppIds = await getAppIds();
-            const scrapedAppIds = await getScrapedAppIds();
-            const appsNeedingReviews = allAppIds.length - scrapedAppIds.length;
+            
+            // Simple count of apps with any reviews
+            const { data: appsWithReviews } = await fetchAllRecords('app_reviews', 'app_id');
+            const uniqueAppsWithReviews = [...new Set(appsWithReviews.map(r => r.app_id))];
+            const appsNeedingReviews = allAppIds.length - uniqueAppsWithReviews.length;
             
             console.log(`Total apps: ${allAppIds.length}`);
-            console.log(`Apps with sufficient reviews: ${scrapedAppIds.length}`);
+            console.log(`Apps with any reviews: ${uniqueAppsWithReviews.length}`);
             console.log(`Apps needing reviews: ${appsNeedingReviews}`);
             
             if (appsNeedingReviews === 0) {
