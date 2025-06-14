@@ -188,28 +188,14 @@ async function scrapeCategoryReviews(category) {
             return;
         }
         
-        // Get already scraped apps efficiently - simplified approach
-        console.log(`Checking for already scraped apps...`);
+        console.log(`Found ${categoryApps.length} apps to scrape in ${category}`);
+        console.log(`Target: Up to 5000 reviews per app (or all available if fewer)\n`);
         
-        // Get apps that already have reviews (simple check)
-        const { data: appsWithReviews, error } = await supabase
-            .from('app_reviews')
-            .select('app_id')
-            .in('app_id', categoryApps);
+        const progress = new CategoryProgress(category, categoryApps.length);
+        await progress.log(`Starting to scrape ${categoryApps.length} apps in ${category}`);
         
-        const scrapedApps = new Set(appsWithReviews?.map(r => r.app_id) || []);
-        console.log(`Found ${scrapedApps.size} apps with existing reviews`);
-        
-        // Filter out already scraped apps
-        const appsToScrape = categoryApps.filter(appId => !scrapedApps.has(appId));
-        
-        console.log(`${appsToScrape.length} apps need scraping in ${category}`);
-        
-        const progress = new CategoryProgress(category, appsToScrape.length);
-        await progress.log(`Found ${appsToScrape.length} apps to scrape in ${category}`);
-        
-        // Process each app
-        for (const appId of appsToScrape) {
+        // Process each app - simple approach, no filtering
+        for (const appId of categoryApps) {
             try {
                 await rateLimiter.waitForNextRequest();
                 

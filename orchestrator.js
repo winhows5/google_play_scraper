@@ -3,7 +3,6 @@ import { spawn } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import { getCategoryAppCounts } from './db.js';
 
 // Configuration
 const MAX_CONCURRENT_SCRAPERS = parseInt(process.env.MAX_CONCURRENT || 20); // Maximum concurrent scrapers
@@ -76,16 +75,12 @@ class ScraperOrchestrator {
             console.log('Starting fresh orchestration');
         }
         
-        // Get category app counts for prioritization
-        const categoryCounts = await getCategoryAppCounts();
-        
-        // Sort categories by app count (process smaller categories first)
-        this.sortedCategories = ALL_CATEGORIES
-            .filter(cat => !this.completedCategories.has(cat))
-            .sort((a, b) => (categoryCounts[a] || 0) - (categoryCounts[b] || 0));
+        // Simple approach: process all categories that haven't been completed
+        this.sortedCategories = ALL_CATEGORIES.filter(cat => !this.completedCategories.has(cat));
         
         console.log(`Categories to process: ${this.sortedCategories.length}`);
         console.log(`Max concurrent scrapers: ${MAX_CONCURRENT_SCRAPERS}`);
+        console.log(`Simple approach: Scrape up to 5000 reviews per app (or all available)\n`);
     }
 
     async saveState() {

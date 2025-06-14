@@ -339,23 +339,10 @@ class MasterPipeline {
         this.stats.phases.reviews.startTime = Date.now();
         
         try {
-            // Get apps that need reviews - simplified check
+            // Simple approach: just get all apps and start scraping
             const allAppIds = await getAppIds();
-            
-            // Simple count of apps with any reviews
-            const { data: appsWithReviews } = await fetchAllRecords('app_reviews', 'app_id');
-            const uniqueAppsWithReviews = [...new Set(appsWithReviews.map(r => r.app_id))];
-            const appsNeedingReviews = allAppIds.length - uniqueAppsWithReviews.length;
-            
-            console.log(`Total apps: ${allAppIds.length}`);
-            console.log(`Apps with any reviews: ${uniqueAppsWithReviews.length}`);
-            console.log(`Apps needing reviews: ${appsNeedingReviews}`);
-            
-            if (appsNeedingReviews === 0) {
-                console.log('✅ All apps already have sufficient reviews, skipping phase\n');
-                this.stats.phases.reviews.status = 'skipped';
-                return true;
-            }
+            console.log(`Total apps to scrape: ${allAppIds.length}`);
+            console.log(`Target: Up to 5000 reviews per app (or all available if fewer)\n`);
             
             // Start monitoring in background if enabled
             let monitoringProcess = null;
