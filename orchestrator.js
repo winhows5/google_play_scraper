@@ -6,8 +6,9 @@ import os from 'os';
 import { getCategoryAppCounts } from './db.js';
 
 // Configuration
-const MAX_CONCURRENT_SCRAPERS = parseInt(process.env.MAX_CONCURRENT || 20); // Increased from 10 to 20
-const STAGGER_DELAY = 15000; // Reduced from 30s to 15s between launching scrapers
+const MAX_CONCURRENT_SCRAPERS = parseInt(process.env.MAX_CONCURRENT || 20); // Maximum concurrent scrapers
+const MIN_CONCURRENT_SCRAPERS = 10; // Minimum scrapers to keep running
+const STAGGER_DELAY = 10000; // Reduced from 15s to 10s between launching scrapers
 const RESOURCE_CHECK_INTERVAL = 60000; // Check resources every minute
 
 // All categories
@@ -177,34 +178,59 @@ class ScraperOrchestrator {
 
     async runBatch() {
         const activeCategoryCount = this.runningScrapers.size;
-        const availableSlots = MAX_CONCURRENT_SCRAPERS - activeCategoryCount;
         
-        if (availableSlots <= 0) {
-            return; // Already at max capacity
+        // Calculate target scrapers to launch
+        let targetScrapers = MIN_CONCURRENT_SCRAPERS;
+        
+        // Check resources to see if we can run more than minimum
+        const resources = await this.checkResources();
+        if (resources.healthy && activeCategoryCount < MAX_CONCURRENT_SCRAPERS) {
+            // Scale up to max if resources allow
+            targetScrapers = MAX_CONCURRENT_SCRAPERS;
         }
         
-        // Check resources before launching new scrapers
-        const resources = await this.checkResources();
-        if (!resources.healthy) {
+        const availableSlots = targetScrapers - activeCategoryCount;
+        
+        if (availableSlots <= 0) {
+            return; // Already at target capacity
+        }
+        
+        // Always maintain minimum scrapers unless resources are severely constrained
+        const forceMinimum = activeCategoryCount < MIN_CONCURRENT_SCRAPERS && resources.memoryUsagePercent < 95;
+        
+        if (!resources.healthy && !forceMinimum) {
             console.log('⏸️  Pausing new launches due to resource constraints');
+            console.log(`    Current: ${activeCategoryCount} scrapers, Target: ${MIN_CONCURRENT_SCRAPERS} minimum`);
             return;
         }
         
-        // Launch new scrapers
-        const categoriesToLaunch = this.sortedCategories
-            .filter(cat => !this.runningScrapers.has(cat) && !this.completedCategories.has(cat))
-            .slice(0, availableSlots);
+        // Get categories that need to be processed
+        const remainingCategories = this.sortedCategories.filter(cat => 
+            !this.runningScrapers.has(cat) && 
+            !this.completedCategories.has(cat) &&
+            !this.failedCategories.has(cat)
+        );
         
-        for (const category of categoriesToLaunch) {
-            await this.launchScraper(category).catch(err => {
-                console.error(`Failed to launch ${category}:`, err.message);
-            });
+        // Launch new scrapers
+        const categoriesToLaunch = remainingCategories.slice(0, availableSlots);
+        
+        if (categoriesToLaunch.length > 0) {
+            console.log(`🚀 Launching ${categoriesToLaunch.length} scrapers (target: ${targetScrapers}, current: ${activeCategoryCount})`);
             
-            // Stagger launches to avoid overwhelming the API
-            if (categoriesToLaunch.indexOf(category) < categoriesToLaunch.length - 1) {
-                console.log(`⏳ Waiting ${STAGGER_DELAY/1000}s before next launch...`);
-                await new Promise(resolve => setTimeout(resolve, STAGGER_DELAY));
+            for (const category of categoriesToLaunch) {
+                await this.launchScraper(category).catch(err => {
+                    console.error(`Failed to launch ${category}:`, err.message);
+                });
+                
+                // Stagger launches to avoid overwhelming the API
+                if (categoriesToLaunch.indexOf(category) < categoriesToLaunch.length - 1) {
+                    console.log(`⏳ Waiting ${STAGGER_DELAY/1000}s before next launch...`);
+                    await new Promise(resolve => setTimeout(resolve, STAGGER_DELAY));
+                }
             }
+        } else if (activeCategoryCount < MIN_CONCURRENT_SCRAPERS && remainingCategories.length === 0) {
+            // No more categories to process, but we're below minimum - this is expected near completion
+            console.log(`📊 Winding down: ${activeCategoryCount} scrapers remaining (${remainingCategories.length} categories left)`);
         }
     }
 
@@ -213,13 +239,16 @@ class ScraperOrchestrator {
         const hours = Math.floor(elapsed / 3600000);
         const minutes = Math.floor((elapsed % 3600000) / 60000);
         
+        const remainingCategories = ALL_CATEGORIES.length - this.completedCategories.size - this.failedCategories.size;
+        
         console.log('\n' + '='.repeat(60));
         console.log('📊 ORCHESTRATOR STATUS');
         console.log('='.repeat(60));
         console.log(`Runtime: ${hours}h ${minutes}m`);
         console.log(`Categories: ${this.stats.categoriesCompleted}/${ALL_CATEGORIES.length} completed`);
-        console.log(`Running: ${this.runningScrapers.size} scrapers`);
+        console.log(`Running: ${this.runningScrapers.size} scrapers (min: ${MIN_CONCURRENT_SCRAPERS}, max: ${MAX_CONCURRENT_SCRAPERS})`);
         console.log(`Failed: ${this.stats.categoriesFailed} categories`);
+        console.log(`Remaining: ${remainingCategories} categories`);
         
         // Show running scrapers
         if (this.runningScrapers.size > 0) {
@@ -236,20 +265,29 @@ class ScraperOrchestrator {
         console.log(`  Memory: ${resources.memoryUsagePercent}% used (${resources.freeMemoryMB}MB free)`);
         console.log(`  Load: ${resources.loadAverage} (${resources.loadPerCpu} per CPU)`);
         console.log('='.repeat(60) + '\n');
+        
+        // Warning if below minimum scrapers
+        if (this.runningScrapers.size < MIN_CONCURRENT_SCRAPERS && remainingCategories > 0) {
+            console.log(`⚠️  Warning: Only ${this.runningScrapers.size} scrapers running (target: ${MIN_CONCURRENT_SCRAPERS} minimum)`);
+        }
     }
 
     async run() {
         await this.initialize();
         
         console.log('🎯 Starting scraper orchestration...\n');
+        console.log(`Target: ${MIN_CONCURRENT_SCRAPERS}-${MAX_CONCURRENT_SCRAPERS} concurrent scrapers`);
         
-        // Main orchestration loop
+        // Main orchestration loop - check more frequently to maintain minimum scrapers
         const orchestrationInterval = setInterval(async () => {
             try {
                 await this.runBatch();
                 
-                // Check if all done
-                if (this.completedCategories.size + this.failedCategories.size >= ALL_CATEGORIES.length) {
+                // Check completion
+                const totalProcessed = this.completedCategories.size + this.failedCategories.size;
+                const stillRunning = this.runningScrapers.size;
+                
+                if (totalProcessed >= ALL_CATEGORIES.length && stillRunning === 0) {
                     clearInterval(orchestrationInterval);
                     clearInterval(statusInterval);
                     await this.displayStatus();
@@ -264,7 +302,7 @@ class ScraperOrchestrator {
             } catch (error) {
                 console.error('Orchestration error:', error);
             }
-        }, 30000); // Check every 30 seconds
+        }, 20000); // Check every 20 seconds to maintain minimum scrapers
         
         // Status display interval
         const statusInterval = setInterval(() => {
