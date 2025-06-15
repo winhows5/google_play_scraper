@@ -89,15 +89,26 @@ class ProgressMonitor {
             const { data: uniqueAppsWithReviews, error: uniqueError } = await supabase
                 .rpc('get_distinct_app_ids');
             
-            if (appsError || reviewsError) throw new Error('Failed to get basic stats');
+            if (appsError || reviewsError) {
+                console.error('Database errors:', { appsError, reviewsError });
+                return null;
+            }
             
-            const uniqueCount = uniqueError ? 0 : uniqueAppsWithReviews.length;
+            // Handle potential null values and provide defaults
+            const totalAppsCount = totalApps || 0;
+            const totalReviewsCount = totalReviews || 0;
+            const uniqueCount = (uniqueError || !uniqueAppsWithReviews) ? 0 : uniqueAppsWithReviews.length;
+            
+            // Ensure we don't divide by zero
+            const completionPercentage = totalAppsCount > 0 
+                ? ((uniqueCount / totalAppsCount) * 100).toFixed(2)
+                : '0.00';
             
             return {
-                total_apps: totalApps,
-                total_reviews: totalReviews,
+                total_apps: totalAppsCount,
+                total_reviews: totalReviewsCount,
                 apps_with_reviews: uniqueCount,
-                completion_percentage: ((uniqueCount / totalApps) * 100).toFixed(2)
+                completion_percentage: completionPercentage
             };
         } catch (error) {
             console.error('Error getting overall stats:', error);
